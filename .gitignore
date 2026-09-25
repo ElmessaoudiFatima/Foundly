@@ -1,0 +1,104 @@
+# ===================================================================
+# Foundly — .gitignore
+# Backend : Spring Boot / Maven
+# Frontend : HTML / CSS / JS
+# ===================================================================
+
+# ── MAVEN / BUILD ────────────────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ── SPRING BOOT ──────────────────────────────────────────────────
+backend/uploads/
+uploads/
+
+# ── INTELLIJ IDEA ────────────────────────────────────────────────
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ── ECLIPSE ──────────────────────────────────────────────────────
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ── VS CODE ──────────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── NETBEANS ─────────────────────────────────────────────────────
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ── SYSTÈME D'EXPLOITATION ────────────────────────────────────────
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+
+# ── LOGS ─────────────────────────────────────────────────────────
+*.log
+logs/
+spring.log
+
+# ── VARIABLES D'ENVIRONNEMENT ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+
+# ── SECRETS / CONFIGURATION SENSIBLE ─────────────────────────────
+# Ne jamais committer les mots de passe ou clés JWT
+# (application.properties est inclus mais sans secrets réels)
+application-prod.properties
+application-production.properties
+application-secret.properties
+
+# ── FICHIERS TEMPORAIRES ──────────────────────────────────────────
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej
+
+# ── DOCKER (volumes locaux) ───────────────────────────────────────
+docker-compose.override.yml
+
+# ── PDF / DOCUMENTS GÉNÉRÉS ───────────────────────────────────────
+# Décommenter si vous ne voulez pas versionner les PDF générés
+# *.pdf
+
+# ── FICHIERS UPLOADÉS PAR LES UTILISATEURS ────────────────────────
+# Les documents déposés par les entrepreneurs ne doivent pas être
+# versionnés dans Git (trop volumineux et données personnelles)
+uploads/
+backend/uploads/
