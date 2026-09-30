@@ -80,7 +80,7 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- ===== E-mail (JavaMail / notifications) ===== -->
+		<!-- ===== E-mail ===== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
@@ -107,7 +107,7 @@
 			<version>3.2.1</version>
 		</dependency>
 
-		<!-- ===== DevTools (rechargement automatique en dev) ===== -->
+		<!-- ===== DevTools ===== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
