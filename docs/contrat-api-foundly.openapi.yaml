@@ -1,0 +1,1374 @@
+openapi: 3.0.3
+info:
+  title: Foundly API
+  version: 1.0.0
+  description: |
+    Contrat REST de Foundly, plateforme de démonstration qui centralise le parcours
+    de création d'entreprise au Maroc. Les administrations (OMPIC, CRI, Tribunal,
+    DGI, CNSS et Journal) sont des rôles internes simulés : aucune intégration vers
+    leurs systèmes réels n'est couverte par cette API.
+
+    Règles contractuelles principales :
+    - Toutes les dates sont en ISO-8601 UTC ; les montants sont en MAD.
+    - Un entrepreneur ne lit et ne modifie que ses propres dossiers.
+    - Un agent ne peut traiter que l'étape courante rattachée à son organisme.
+    - La validation ou le rejet crée un événement d'audit immuable et une notification.
+    - Les documents acceptés sont PDF ou JPG, de taille strictement inférieure à 5 Mo.
+    - Le paiement est une simulation : aucune transaction bancaire réelle n'est déclenchée.
+    - Les PDF générés sont des modèles de démonstration et n'ont pas de valeur juridique.
+  contact:
+    name: Équipe Foundly
+servers:
+  - url: https://api.foundly.ma/api/v1
+    description: Production (exemple)
+  - url: http://localhost:8080/api/v1
+    description: Développement local Spring Boot
+tags:
+  - name: Public
+  - name: Authentification
+  - name: Profil
+  - name: Dossiers
+  - name: Documents
+  - name: Paiements
+  - name: Notifications
+  - name: Agent
+  - name: Administration
+security:
+  - bearerAuth: []
+paths:
+  /public/legal-forms:
+    get:
+      tags: [Public]
+      security: []
+      summary: Lister les formes juridiques prises en charge
+      responses:
+        '200':
+          description: Formes disponibles et informations indicatives
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/LegalForm'}
+  /public/assistant/recommend:
+    post:
+      tags: [Public]
+      security: []
+      summary: Obtenir une recommandation indicative de forme juridique
+      description: Ne constitue pas un conseil juridique. Le choix final est confirmé à la création du dossier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AssistantRequest'}
+      responses:
+        '200':
+          description: Recommandation, hypothèses et checklist prévisionnelle
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssistantRecommendation'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /public/simulations:
+    post:
+      tags: [Public]
+      security: []
+      summary: Simuler le coût et le délai indicatifs d'un parcours
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SimulationRequest'}
+      responses:
+        '200':
+          description: Simulation sans valeur contractuelle ni juridique
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Simulation'}
+  /public/faqs:
+    get:
+      tags: [Public]
+      security: []
+      summary: Consulter la FAQ publique
+      responses:
+        '200':
+          description: Questions fréquemment posées
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/FaqItem'}
+
+  /auth/register:
+    post:
+      tags: [Authentification]
+      security: []
+      summary: Créer un compte entrepreneur
+      description: L'inscription publique ne peut créer qu'un rôle ENTREPRENEUR.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterRequest'}
+      responses:
+        '201':
+          description: Compte créé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSession'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /auth/login:
+    post:
+      tags: [Authentification]
+      security: []
+      summary: S'authentifier par email et mot de passe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200':
+          description: Jeton d'accès JWT et jeton de renouvellement
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSession'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /auth/refresh:
+    post:
+      tags: [Authentification]
+      security: []
+      summary: Renouveler une session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string}
+      responses:
+        '200':
+          description: Nouvelle paire de jetons
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSession'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /auth/logout:
+    post:
+      tags: [Authentification]
+      summary: Invalider le jeton de renouvellement courant
+      responses:
+        '204': {description: Session fermée}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /users/me:
+    get:
+      tags: [Profil]
+      summary: Obtenir le profil de l'utilisateur connecté
+      responses:
+        '200':
+          description: Profil courant
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [Profil]
+      summary: Mettre à jour les coordonnées personnelles autorisées
+      description: L'email, le rôle et l'organisme ne sont jamais modifiables par cet endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProfileUpdate'}
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /dossiers:
+    get:
+      tags: [Dossiers]
+      summary: Lister les dossiers de l'entrepreneur connecté
+      description: Réservé au rôle ENTREPRENEUR.
+      parameters:
+        - {$ref: '#/components/parameters/DossierStatus'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+        - {$ref: '#/components/parameters/Sort'}
+      responses:
+        '200':
+          description: Page de dossiers appartenant au demandeur
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedDossierSummary'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      tags: [Dossiers]
+      summary: Créer un dossier au statut BROUILLON
+      description: |
+        Réservé à ENTREPRENEUR. La forme juridique devient non modifiable dès la soumission.
+        Le serveur choisit et fige la version de workflow ainsi que la checklist applicables.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DossierCreateRequest'}
+      responses:
+        '201':
+          description: Dossier brouillon créé avec sa checklist
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DossierDetail'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /dossiers/{dossierId}:
+    parameters:
+      - {$ref: '#/components/parameters/DossierId'}
+    get:
+      tags: [Dossiers]
+      summary: Consulter un dossier et son avancement
+      description: Accessible au propriétaire, à l'agent habilité sur l'étape courante, ou à ADMINISTRATEUR.
+      responses:
+        '200':
+          description: Dossier détaillé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DossierDetail'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Dossiers]
+      summary: Modifier un brouillon ou corriger un dossier rejeté
+      description: |
+        Réservé au propriétaire. `legalFormCode` est accepté uniquement si le dossier est BROUILLON.
+        Pour un dossier A_CORRIGER, seules les données et pièces demandées peuvent être corrigées.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DossierUpdateRequest'}
+      responses:
+        '200':
+          description: Dossier modifié
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DossierDetail'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /dossiers/{dossierId}/checklist:
+    get:
+      tags: [Dossiers]
+      summary: Lire la checklist documentaire figée d'un dossier
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Pièces requises, disponibilité et éventuels motifs de correction
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/ChecklistItem'}
+  /dossiers/{dossierId}/steps:
+    get:
+      tags: [Dossiers]
+      summary: Lire les suivis d'étape et la barre de progression
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Étapes applicables, dans leur ordre de traitement
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/StepTracking'}
+  /dossiers/{dossierId}/audit-events:
+    get:
+      tags: [Dossiers]
+      summary: Consulter l'historique non modifiable du dossier
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Événements classés du plus récent au plus ancien
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AuditEvent'}
+  /dossiers/{dossierId}/submit:
+    post:
+      tags: [Dossiers]
+      summary: Soumettre ou re-soumettre un dossier
+      description: |
+        Le serveur vérifie la complétude de la checklist, les paiements requis et l'état du dossier.
+        Une re-soumission après rejet relance strictement l'étape rejetée. L'opération est idempotente
+        avec l'en-tête optionnel `Idempotency-Key`.
+      parameters:
+        - {$ref: '#/components/parameters/DossierId'}
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema: {type: string, maxLength: 100}
+      responses:
+        '200':
+          description: Dossier placé dans le workflow ou étape rejetée relancée
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubmissionResult'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+        '422': {$ref: '#/components/responses/ChecklistIncomplete'}
+
+  /dossiers/{dossierId}/documents:
+    get:
+      tags: [Documents]
+      summary: Lister les documents actifs d'un dossier
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Métadonnées des fichiers ; le contenu exige l'endpoint dédié
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Document'}
+    post:
+      tags: [Documents]
+      summary: Téléverser une pièce justificative
+      description: |
+        Réservé au propriétaire en BROUILLON ou A_CORRIGER. Si le type est
+        ATTESTATION_BLOCAGE_CAPITAL et que cette étape est applicable, le serveur valide
+        automatiquement l'étape de dépôt de l'attestation ; sa conformité reste contrôlée par le CRI.
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [documentTypeCode, file]
+              properties:
+                documentTypeCode:
+                  type: string
+                  example: CIN
+                file:
+                  type: string
+                  format: binary
+                note:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Fichier contrôlé, chiffré au repos et associé au dossier
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Document'}
+        '413':
+          description: Fichier de 5 Mo ou plus
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '415':
+          description: Format autre que PDF ou JPG
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /dossiers/{dossierId}/documents/{documentId}/content:
+    get:
+      tags: [Documents]
+      summary: Télécharger ou afficher un document autorisé
+      parameters:
+        - {$ref: '#/components/parameters/DossierId'}
+        - {$ref: '#/components/parameters/DocumentId'}
+      responses:
+        '200':
+          description: Flux binaire après contrôle d'accès
+          content:
+            application/pdf: {schema: {type: string, format: binary}}
+            image/jpeg: {schema: {type: string, format: binary}}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /dossiers/{dossierId}/documents/{documentId}:
+    delete:
+      tags: [Documents]
+      summary: Retirer une pièce active avant soumission ou pendant correction
+      description: Suppression logique pour conserver la traçabilité ; interdite après finalisation.
+      parameters:
+        - {$ref: '#/components/parameters/DossierId'}
+        - {$ref: '#/components/parameters/DocumentId'}
+      responses:
+        '204': {description: Pièce retirée de la checklist active}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /dossiers/{dossierId}/generated-documents:
+    post:
+      tags: [Documents]
+      summary: Générer un PDF pré-rempli de démonstration
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateCode]
+              properties:
+                templateCode:
+                  type: string
+                  enum: [STATUTS_TYPE, FORMULAIRE_UNIQUE]
+      responses:
+        '201':
+          description: Document PDF généré et disponible dans la liste des documents
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Document'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+
+  /dossiers/{dossierId}/payments:
+    get:
+      tags: [Paiements]
+      summary: Lister les paiements simulés associés au dossier
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Paiements par étape facturable
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Payment'}
+    post:
+      tags: [Paiements]
+      summary: Initialiser une simulation de paiement pour une étape
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stepTrackingId]
+              properties:
+                stepTrackingId: {type: string, format: uuid}
+      responses:
+        '201':
+          description: Simulation créée au statut EN_ATTENTE
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Payment'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /dossiers/{dossierId}/payments/{paymentId}/confirm:
+    post:
+      tags: [Paiements]
+      summary: Confirmer le paiement simulé
+      parameters:
+        - {$ref: '#/components/parameters/DossierId'}
+        - {$ref: '#/components/parameters/PaymentId'}
+      responses:
+        '200':
+          description: Paiement passé à CONFIRME ; aucun prestataire de paiement n'est appelé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Payment'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Lister les notifications du compte connecté
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema: {type: boolean, default: false}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Notifications in-app, triées par date décroissante
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedNotifications'}
+  /notifications/{notificationId}/read:
+    patch:
+      tags: [Notifications]
+      summary: Marquer une notification comme lue
+      parameters: [{$ref: '#/components/parameters/NotificationId'}]
+      responses:
+        '200':
+          description: Notification mise à jour
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Notification'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /agent/queue:
+    get:
+      tags: [Agent]
+      summary: Consulter la file des dossiers à traiter par l'agent connecté
+      description: |
+        Réservé à AGENT. Le serveur filtre obligatoirement par organisme de l'agent,
+        étape courante et statut EN_COURS ; l'organisme n'est jamais passé par le client.
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Dossiers en attente de décision de cet agent
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedAgentQueueItem'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /agent/dossiers/{dossierId}/review:
+    get:
+      tags: [Agent]
+      summary: Ouvrir le dossier et les pièces nécessaires à la décision courante
+      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      responses:
+        '200':
+          description: Vue de revue avec l'étape courante seulement
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AgentReview'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /agent/dossiers/{dossierId}/steps/{stepTrackingId}/decisions:
+    post:
+      tags: [Agent]
+      summary: Enregistrer une décision de validation ou de rejet
+      description: |
+        Crée une décision d'audit immuable. `reason` est obligatoire lorsque `decision` vaut REJETER.
+        VALIDER avance automatiquement le workflow. REJETER place le dossier à A_CORRIGER et notifie son propriétaire.
+      parameters:
+        - {$ref: '#/components/parameters/DossierId'}
+        - {$ref: '#/components/parameters/StepTrackingId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentDecisionRequest'}
+      responses:
+        '201':
+          description: Décision enregistrée et transition exécutée
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WorkflowTransition'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /agent/history:
+    get:
+      tags: [Agent]
+      summary: Consulter l'historique des décisions de l'agent connecté
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Décisions prises par l'agent, du plus récent au plus ancien
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedAuditEvents'}
+
+  /admin/dossiers:
+    get:
+      tags: [Administration]
+      summary: Rechercher tous les dossiers de la plateforme
+      description: Réservé à ADMINISTRATEUR/SUPERVISEUR.
+      parameters:
+        - {$ref: '#/components/parameters/DossierStatus'}
+        - name: legalFormCode
+          in: query
+          schema: {$ref: '#/components/schemas/LegalFormCode'}
+        - name: currentStepCode
+          in: query
+          schema: {type: string}
+        - name: region
+          in: query
+          schema: {type: string}
+        - name: createdFrom
+          in: query
+          schema: {type: string, format: date}
+        - name: createdTo
+          in: query
+          schema: {type: string, format: date}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Page de dossiers filtrée
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedDossierSummary'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /admin/dashboard:
+    get:
+      tags: [Administration]
+      summary: Lire les statistiques de pilotage
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: {type: string, format: date}
+        - name: dateTo
+          in: query
+          schema: {type: string, format: date}
+      responses:
+        '200':
+          description: Volumétrie, taux de rejet et délais moyens
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Dashboard'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /admin/organizations:
+    get:
+      tags: [Administration]
+      summary: Lister les organismes simulés configurés
+      responses:
+        '200':
+          description: Organismes et nombre d'agents actifs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Organization'}
+  /admin/agents:
+    get:
+      tags: [Administration]
+      summary: Lister les comptes agents
+      parameters:
+        - name: organizationCode
+          in: query
+          schema: {type: string}
+        - name: active
+          in: query
+          schema: {type: boolean}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Page de comptes agents
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedUsers'}
+    post:
+      tags: [Administration]
+      summary: Créer un compte agent et l'affecter à un organisme
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentCreateRequest'}
+      responses:
+        '201':
+          description: Compte agent créé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /admin/agents/{agentId}:
+    patch:
+      tags: [Administration]
+      summary: Modifier l'affectation ou les coordonnées d'un agent
+      parameters: [{$ref: '#/components/parameters/AgentId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentUpdateRequest'}
+      responses:
+        '200':
+          description: Agent mis à jour
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /admin/agents/{agentId}/status:
+    patch:
+      tags: [Administration]
+      summary: Activer ou désactiver un agent sans supprimer son historique
+      parameters: [{$ref: '#/components/parameters/AgentId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active: {type: boolean}
+      responses:
+        '200':
+          description: Statut du compte mis à jour
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+
+  /admin/workflow-versions:
+    get:
+      tags: [Administration]
+      summary: Lister les versions de workflow
+      responses:
+        '200':
+          description: Versions configurées, y compris les brouillons
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/WorkflowVersion'}
+    post:
+      tags: [Administration]
+      summary: Créer une nouvelle version de workflow
+      description: Une version nouvellement créée est BROUILLON et ne concerne aucun dossier existant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkflowVersionRequest'}
+      responses:
+        '201':
+          description: Brouillon de workflow créé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WorkflowVersion'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /admin/workflow-versions/{workflowVersionId}:
+    get:
+      tags: [Administration]
+      summary: Consulter une version de workflow
+      parameters: [{$ref: '#/components/parameters/WorkflowVersionId'}]
+      responses:
+        '200':
+          description: Définition complète et ordonnée du workflow
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WorkflowVersion'}
+    patch:
+      tags: [Administration]
+      summary: Modifier les étapes d'un workflow BROUILLON
+      description: L'ordre est donné explicitement par `steps`. Une version ACTIVE est immuable.
+      parameters: [{$ref: '#/components/parameters/WorkflowVersionId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkflowVersionRequest'}
+      responses:
+        '200':
+          description: Brouillon modifié
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WorkflowVersion'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /admin/workflow-versions/{workflowVersionId}/publish:
+    post:
+      tags: [Administration]
+      summary: Activer une version de workflow pour les futurs dossiers
+      description: |
+        Vérifie que l'ordre, les organismes et les règles d'applicabilité sont valides.
+        Les dossiers déjà créés conservent leur version figée, conformément à RG14.
+      parameters: [{$ref: '#/components/parameters/WorkflowVersionId'}]
+      responses:
+        '200':
+          description: Version devenue ACTIVE ; l'ancienne version active est archivée
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WorkflowVersion'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /admin/exports/dossiers:
+    get:
+      tags: [Administration]
+      summary: Exporter les données de reporting
+      description: Respecte les mêmes filtres que GET /admin/dossiers et le principe de minimisation des données.
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: {type: string, enum: [CSV, XLSX]}
+        - {$ref: '#/components/parameters/DossierStatus'}
+        - name: legalFormCode
+          in: query
+          schema: {$ref: '#/components/schemas/LegalFormCode'}
+        - name: dateFrom
+          in: query
+          schema: {type: string, format: date}
+        - name: dateTo
+          in: query
+          schema: {type: string, format: date}
+      responses:
+        '200':
+          description: Fichier de reporting
+          content:
+            text/csv: {schema: {type: string, format: binary}}
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT d'accès envoyé sous la forme `Authorization: Bearer <token>`.
+  parameters:
+    DossierId:
+      name: dossierId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    AgentId:
+      name: agentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    StepTrackingId:
+      name: stepTrackingId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    WorkflowVersionId:
+      name: workflowVersionId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    DossierStatus:
+      name: status
+      in: query
+      schema: {$ref: '#/components/schemas/DossierStatus'}
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 0, default: 0}
+    Size:
+      name: size
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    Sort:
+      name: sort
+      in: query
+      description: Champ et direction, par exemple `createdAt,desc`.
+      schema: {type: string, default: 'createdAt,desc'}
+  responses:
+    Unauthorized:
+      description: Jeton absent, expiré ou invalide
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    Forbidden:
+      description: Rôle ou propriété insuffisant(e)
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    NotFound:
+      description: Ressource inexistante ou non visible par le demandeur
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    Conflict:
+      description: Ressource déjà existante ou conflit de données
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    IllegalState:
+      description: Transition ou opération non autorisée dans l'état courant
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    ValidationError:
+      description: Corps, paramètres ou règles de validation invalides
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+    ChecklistIncomplete:
+      description: Checklist incomplète, pièce invalide ou paiement simulé requis
+      content: {application/json: {schema: {$ref: '#/components/schemas/ApiError'}}}
+  schemas:
+    UserRole:
+      type: string
+      enum: [ENTREPRENEUR, AGENT, ADMINISTRATEUR]
+    LegalFormCode:
+      type: string
+      enum: [AUTO_ENTREPRENEUR, SARL, SARL_AU, SA]
+    DossierStatus:
+      type: string
+      enum: [BROUILLON, SOUMIS, EN_COURS, A_CORRIGER, FINALISE]
+    StepStatus:
+      type: string
+      enum: [EN_ATTENTE, EN_COURS, VALIDEE, REJETEE, IGNORÉE]
+    PaymentStatus:
+      type: string
+      enum: [EN_ATTENTE, CONFIRME, ANNULE]
+    LegalForm:
+      type: object
+      required: [code, label, description, indicativeDurationDays, indicativeCostMad]
+      properties:
+        code: {$ref: '#/components/schemas/LegalFormCode'}
+        label: {type: string, example: SARL à associé unique}
+        description: {type: string}
+        indicativeDurationDays: {type: integer, minimum: 0, example: 7}
+        indicativeCostMad: {type: number, format: decimal, example: 1500.00}
+        capitalBlockageRule:
+          type: string
+          example: Requis pour SA et pour SARL lorsque le capital est supérieur à 100000 MAD.
+    AssistantRequest:
+      type: object
+      required: [numberOfPartners, wantsLimitedLiability, estimatedCapitalMad]
+      properties:
+        numberOfPartners: {type: integer, minimum: 1, example: 1}
+        wantsLimitedLiability: {type: boolean, example: true}
+        estimatedCapitalMad: {type: number, minimum: 0, example: 120000}
+        intendsToHireEmployees: {type: boolean, example: false}
+        activityDescription: {type: string, maxLength: 500}
+    AssistantRecommendation:
+      type: object
+      required: [recommendedLegalForm, rationale, indicativeChecklist, disclaimer]
+      properties:
+        recommendedLegalForm: {$ref: '#/components/schemas/LegalFormCode'}
+        alternatives:
+          type: array
+          items: {$ref: '#/components/schemas/LegalFormCode'}
+        rationale: {type: string}
+        indicativeChecklist:
+          type: array
+          items: {type: string}
+        disclaimer:
+          type: string
+          example: Résultat indicatif de démonstration, sans conseil juridique.
+    SimulationRequest:
+      type: object
+      required: [legalFormCode]
+      properties:
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        capitalAmountMad: {type: number, minimum: 0}
+    Simulation:
+      type: object
+      required: [legalFormCode, indicativeTotalCostMad, indicativeDurationDays, applicableSteps, disclaimer]
+      properties:
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        indicativeTotalCostMad: {type: number, format: decimal}
+        indicativeDurationDays: {type: integer}
+        capitalBlockageRequired: {type: boolean}
+        applicableSteps:
+          type: array
+          items: {type: string}
+        disclaimer: {type: string}
+    FaqItem:
+      type: object
+      required: [id, question, answer, displayOrder]
+      properties:
+        id: {type: string, format: uuid}
+        question: {type: string}
+        answer: {type: string}
+        displayOrder: {type: integer}
+    RegisterRequest:
+      type: object
+      required: [firstName, lastName, email, password, cin, phone]
+      properties:
+        firstName: {type: string, minLength: 1, maxLength: 80}
+        lastName: {type: string, minLength: 1, maxLength: 80}
+        email: {type: string, format: email}
+        password: {type: string, format: password, minLength: 12, maxLength: 72}
+        cin: {type: string, minLength: 4, maxLength: 20}
+        phone: {type: string, minLength: 8, maxLength: 20}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string, format: password}
+    AuthSession:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn, user]
+      properties:
+        accessToken: {type: string}
+        refreshToken: {type: string}
+        tokenType: {type: string, example: Bearer}
+        expiresIn: {type: integer, description: Durée de vie du JWT d'accès en secondes, example: 900}
+        user: {$ref: '#/components/schemas/User'}
+    User:
+      type: object
+      required: [id, firstName, lastName, email, role, active, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        firstName: {type: string}
+        lastName: {type: string}
+        email: {type: string, format: email}
+        cinMasked: {type: string, example: AB***34}
+        phone: {type: string}
+        role: {$ref: '#/components/schemas/UserRole'}
+        organization: {$ref: '#/components/schemas/OrganizationReference'}
+        active: {type: boolean}
+        createdAt: {type: string, format: date-time}
+    ProfileUpdate:
+      type: object
+      properties:
+        firstName: {type: string, minLength: 1, maxLength: 80}
+        lastName: {type: string, minLength: 1, maxLength: 80}
+        phone: {type: string, minLength: 8, maxLength: 20}
+    DossierCreateRequest:
+      type: object
+      required: [legalFormCode, region]
+      properties:
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        proposedCompanyName: {type: string, maxLength: 200, example: Atlas Digital SARL}
+        region: {type: string, minLength: 2, maxLength: 100, example: Tanger-Tétouan-Al Hoceïma}
+        activityDescription: {type: string, maxLength: 1000}
+        capitalAmountMad: {type: number, minimum: 0, example: 120000}
+        headOfficeAddress: {type: string, maxLength: 500}
+    DossierUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        proposedCompanyName: {type: string, maxLength: 200}
+        region: {type: string, minLength: 2, maxLength: 100}
+        activityDescription: {type: string, maxLength: 1000}
+        capitalAmountMad: {type: number, minimum: 0}
+        headOfficeAddress: {type: string, maxLength: 500}
+    DossierSummary:
+      type: object
+      required: [id, reference, legalFormCode, status, region, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        reference: {type: string, example: FND-2026-000042}
+        proposedCompanyName: {type: string, nullable: true}
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        status: {$ref: '#/components/schemas/DossierStatus'}
+        region: {type: string}
+        currentStep: {$ref: '#/components/schemas/StepReference'}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    DossierDetail:
+      allOf:
+        - {$ref: '#/components/schemas/DossierSummary'}
+        - type: object
+          required: [workflowVersionId, checklistCompletionRate, steps]
+          properties:
+            workflowVersionId: {type: string, format: uuid}
+            activityDescription: {type: string, nullable: true}
+            capitalAmountMad: {type: number, nullable: true}
+            capitalBlockageRequired: {type: boolean}
+            headOfficeAddress: {type: string, nullable: true}
+            submittedAt: {type: string, format: date-time, nullable: true}
+            finalizedAt: {type: string, format: date-time, nullable: true}
+            checklistCompletionRate: {type: number, minimum: 0, maximum: 100}
+            steps:
+              type: array
+              items: {$ref: '#/components/schemas/StepTracking'}
+    ChecklistItem:
+      type: object
+      required: [documentTypeCode, label, required, acceptedMimeTypes, submitted]
+      properties:
+        documentTypeCode: {type: string, example: JUSTIFICATIF_SIEGE}
+        label: {type: string}
+        required: {type: boolean}
+        acceptedMimeTypes:
+          type: array
+          items: {type: string, enum: [application/pdf, image/jpeg]}
+        submitted: {type: boolean}
+        activeDocumentId: {type: string, format: uuid, nullable: true}
+        correctionRequired: {type: boolean}
+        correctionReason: {type: string, nullable: true}
+    Document:
+      type: object
+      required: [id, documentTypeCode, fileName, mimeType, sizeBytes, source, uploadedAt]
+      properties:
+        id: {type: string, format: uuid}
+        documentTypeCode: {type: string}
+        fileName: {type: string}
+        mimeType: {type: string, enum: [application/pdf, image/jpeg]}
+        sizeBytes: {type: integer, minimum: 1, maximum: 5242879}
+        source: {type: string, enum: [UPLOADED, GENERATED]}
+        uploadedAt: {type: string, format: date-time}
+        uploadedByUserId: {type: string, format: uuid}
+        note: {type: string, nullable: true}
+        contentUrl: {type: string, format: uri}
+    StepReference:
+      type: object
+      required: [code, label, order]
+      properties:
+        code: {type: string, example: DEPOT_CRI}
+        label: {type: string}
+        order: {type: integer, minimum: 1}
+    StepTracking:
+      allOf:
+        - {$ref: '#/components/schemas/StepReference'}
+        - type: object
+          required: [id, status, actionOwner]
+          properties:
+            id: {type: string, format: uuid}
+            status: {$ref: '#/components/schemas/StepStatus'}
+            actionOwner: {type: string, enum: [AGENT, ENTREPRENEUR, SYSTEME]}
+            organization: {$ref: '#/components/schemas/OrganizationReference'}
+            indicativeDurationDays: {type: integer, minimum: 0}
+            feeMad: {type: number, minimum: 0}
+            paymentRequired: {type: boolean}
+            startedAt: {type: string, format: date-time, nullable: true}
+            decidedAt: {type: string, format: date-time, nullable: true}
+            rejectionReason: {type: string, nullable: true}
+            processedBy: {$ref: '#/components/schemas/UserReference'}
+    SubmissionResult:
+      type: object
+      required: [dossierId, status, currentStep, submittedAt]
+      properties:
+        dossierId: {type: string, format: uuid}
+        status: {$ref: '#/components/schemas/DossierStatus'}
+        currentStep: {$ref: '#/components/schemas/StepReference'}
+        submittedAt: {type: string, format: date-time}
+        message: {type: string}
+    Payment:
+      type: object
+      required: [id, stepTrackingId, amountMad, status, simulatedReference, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        stepTrackingId: {type: string, format: uuid}
+        amountMad: {type: number, format: decimal, minimum: 0}
+        status: {$ref: '#/components/schemas/PaymentStatus'}
+        simulatedReference: {type: string, example: SIM-FND-73BK91}
+        createdAt: {type: string, format: date-time}
+        confirmedAt: {type: string, format: date-time, nullable: true}
+    Notification:
+      type: object
+      required: [id, title, body, channel, read, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        body: {type: string}
+        channel: {type: string, enum: [IN_APP, EMAIL]}
+        dossierId: {type: string, format: uuid, nullable: true}
+        read: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        readAt: {type: string, format: date-time, nullable: true}
+    AgentQueueItem:
+      allOf:
+        - {$ref: '#/components/schemas/DossierSummary'}
+        - type: object
+          required: [currentStepTrackingId, waitingSince]
+          properties:
+            currentStepTrackingId: {type: string, format: uuid}
+            waitingSince: {type: string, format: date-time}
+    AgentReview:
+      type: object
+      required: [dossier, currentStep, documents, checklist]
+      properties:
+        dossier: {$ref: '#/components/schemas/DossierDetail'}
+        currentStep: {$ref: '#/components/schemas/StepTracking'}
+        checklist:
+          type: array
+          items: {$ref: '#/components/schemas/ChecklistItem'}
+        documents:
+          type: array
+          items: {$ref: '#/components/schemas/Document'}
+    AgentDecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision: {type: string, enum: [VALIDER, REJETER]}
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Obligatoire si decision = REJETER ; ignoré autrement.
+        comment: {type: string, maxLength: 1000}
+    WorkflowTransition:
+      type: object
+      required: [dossierId, decision, dossierStatus, decidedStep, occurredAt]
+      properties:
+        dossierId: {type: string, format: uuid}
+        decision: {type: string, enum: [VALIDER, REJETER]}
+        dossierStatus: {$ref: '#/components/schemas/DossierStatus'}
+        decidedStep: {$ref: '#/components/schemas/StepTracking'}
+        nextStep: {$ref: '#/components/schemas/StepTracking'}
+        occurredAt: {type: string, format: date-time}
+    AuditEvent:
+      type: object
+      required: [id, occurredAt, action, actorType]
+      properties:
+        id: {type: string, format: uuid}
+        occurredAt: {type: string, format: date-time}
+        action:
+          type: string
+          enum: [DOSSIER_CREE, DOSSIER_SOUMIS, DOCUMENT_AJOUTE, PAIEMENT_CONFIRME, ETAPE_VALIDEE, ETAPE_REJETEE, DOSSIER_FINALISE]
+        actorType: {type: string, enum: [ENTREPRENEUR, AGENT, ADMINISTRATEUR, SYSTEME]}
+        actor: {$ref: '#/components/schemas/UserReference'}
+        stepTrackingId: {type: string, format: uuid, nullable: true}
+        reason: {type: string, nullable: true}
+        details: {type: string, nullable: true}
+    OrganizationReference:
+      type: object
+      nullable: true
+      properties:
+        code: {type: string, example: CRI}
+        name: {type: string, example: Centre Régional d'Investissement}
+    Organization:
+      allOf:
+        - {$ref: '#/components/schemas/OrganizationReference'}
+        - type: object
+          required: [description, activeAgentCount]
+          properties:
+            description: {type: string}
+            activeAgentCount: {type: integer, minimum: 0}
+    UserReference:
+      type: object
+      nullable: true
+      properties:
+        id: {type: string, format: uuid}
+        displayName: {type: string}
+        role: {$ref: '#/components/schemas/UserRole'}
+    AgentCreateRequest:
+      allOf:
+        - {$ref: '#/components/schemas/RegisterRequest'}
+        - type: object
+          required: [organizationCode]
+          properties:
+            organizationCode: {type: string, example: CRI}
+    AgentUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        firstName: {type: string, minLength: 1, maxLength: 80}
+        lastName: {type: string, minLength: 1, maxLength: 80}
+        phone: {type: string, minLength: 8, maxLength: 20}
+        organizationCode: {type: string}
+    WorkflowVersionRequest:
+      type: object
+      required: [legalFormCode, steps]
+      properties:
+        legalFormCode: {$ref: '#/components/schemas/LegalFormCode'}
+        steps:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/WorkflowStepDefinition'}
+    WorkflowVersion:
+      allOf:
+        - {$ref: '#/components/schemas/WorkflowVersionRequest'}
+        - type: object
+          required: [id, versionNumber, status, createdAt]
+          properties:
+            id: {type: string, format: uuid}
+            versionNumber: {type: integer, minimum: 1}
+            status: {type: string, enum: [BROUILLON, ACTIVE, ARCHIVEE]}
+            createdAt: {type: string, format: date-time}
+            publishedAt: {type: string, format: date-time, nullable: true}
+    WorkflowStepDefinition:
+      type: object
+      required: [code, label, order, actionOwner]
+      properties:
+        code: {type: string, pattern: '^[A-Z][A-Z0-9_]{2,49}$', example: CERTIFICAT_NEGATIF}
+        label: {type: string, maxLength: 150}
+        order: {type: integer, minimum: 1}
+        actionOwner: {type: string, enum: [AGENT, ENTREPRENEUR, SYSTEME]}
+        organizationCode:
+          type: string
+          nullable: true
+          description: Obligatoire si actionOwner est AGENT ; null sinon.
+        feeMad: {type: number, minimum: 0, default: 0}
+        indicativeDurationDays: {type: integer, minimum: 0}
+        applicableWhen:
+          type: string
+          nullable: true
+          example: legalFormCode == 'SARL' && capitalAmountMad > 100000
+          description: Expression évaluée côté serveur lors de la création du dossier.
+    Dashboard:
+      type: object
+      required: [period, totalDossiers, dossiersByStatus, monthlyVolume, rejectionRateByStep, averageDurationDaysByStep]
+      properties:
+        period:
+          type: object
+          properties:
+            from: {type: string, format: date}
+            to: {type: string, format: date}
+        totalDossiers: {type: integer, minimum: 0}
+        dossiersByStatus:
+          type: object
+          additionalProperties: {type: integer}
+        monthlyVolume:
+          type: array
+          items:
+            type: object
+            properties:
+              month: {type: string, example: '2026-10'}
+              count: {type: integer}
+        rejectionRateByStep:
+          type: array
+          items:
+            type: object
+            properties:
+              stepCode: {type: string}
+              rejectionRate: {type: number, minimum: 0, maximum: 100}
+        averageDurationDaysByStep:
+          type: array
+          items:
+            type: object
+            properties:
+              stepCode: {type: string}
+              averageDurationDays: {type: number, minimum: 0}
+    ApiError:
+      type: object
+      required: [timestamp, status, code, message, path, traceId]
+      properties:
+        timestamp: {type: string, format: date-time}
+        status: {type: integer, example: 422}
+        code: {type: string, example: CHECKLIST_INCOMPLETE}
+        message: {type: string, example: La pièce CIN est obligatoire avant la soumission.}
+        path: {type: string, example: /api/v1/dossiers/0e4e6c01-6c86-4f0e-aa0a-0d39ee9f918b/submit}
+        traceId: {type: string, example: 62ef9dd0cf4f}
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: {type: string}
+              message: {type: string}
+    PagedDossierSummary:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content: {type: array, items: {$ref: '#/components/schemas/DossierSummary'}}
+        page: {type: integer, minimum: 0}
+        size: {type: integer, minimum: 1}
+        totalElements: {type: integer, minimum: 0}
+        totalPages: {type: integer, minimum: 0}
+    PagedAgentQueueItem:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content: {type: array, items: {$ref: '#/components/schemas/AgentQueueItem'}}
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer}
+        totalPages: {type: integer}
+    PagedNotifications:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content: {type: array, items: {$ref: '#/components/schemas/Notification'}}
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer}
+        totalPages: {type: integer}
+    PagedAuditEvents:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content: {type: array, items: {$ref: '#/components/schemas/AuditEvent'}}
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer}
+        totalPages: {type: integer}
+    PagedUsers:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content: {type: array, items: {$ref: '#/components/schemas/User'}}
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer}
+        totalPages: {type: integer}
