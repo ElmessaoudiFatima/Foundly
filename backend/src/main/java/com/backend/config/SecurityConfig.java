@@ -22,12 +22,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import org.springframework.security.config.Customizer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Configuration de Spring Security.
  * - CSRF désactivé (API stateless JWT).
+ * - CORS activé pour autoriser les origines frontend (dont Angular 4200).
  * - Session STATELESS.
  * - Filtre JWT inséré avant UsernamePasswordAuthenticationFilter.
  * - AuthenticationEntryPoint (401) et AccessDeniedHandler (403) personnalisés.
@@ -51,6 +58,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // CORS
+            .cors(Customizer.withDefaults())
             // Désactiver CSRF (API REST stateless)
             .csrf(AbstractHttpConfigurer::disable)
 
@@ -116,6 +125,27 @@ public class SecurityConfig {
                     request.getRequestURI());
             writeJsonError(response, 403, error);
         };
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:4200",
+                "http://127.0.0.1:4200",
+                "http://localhost:3000",
+                "http://localhost:5500",
+                "http://127.0.0.1:5500"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "Link", "X-Total-Count"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     private void writeJsonError(HttpServletResponse response, int status, ApiError error) {
