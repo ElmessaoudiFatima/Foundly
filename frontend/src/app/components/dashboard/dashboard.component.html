@@ -1,0 +1,139 @@
+<div class="dashboard-page">
+  <!-- Navbar -->
+  <header class="dash-navbar">
+    <div class="dash-nav-inner">
+      <a routerLink="/" class="dash-brand">
+        <span class="logo-icon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#1F3864"/>
+            <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
+          </svg>
+        </span>
+        <span class="brand-name">Foundly</span>
+        <span class="dash-pill">{{ spaceTitle }}</span>
+      </a>
+
+      <div class="dash-nav-actions">
+        <div class="user-chip">
+          <div class="avatar-circle">
+            {{ user()?.firstName?.charAt(0) || 'U' }}{{ user()?.lastName?.charAt(0) || 'S' }}
+          </div>
+          <div class="user-meta">
+            <span class="user-fullname">{{ user()?.firstName }} {{ user()?.lastName }}</span>
+            <span class="user-role">{{ roleLabel }}</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-danger" (click)="logout()" [disabled]="isLoggingOut">
+          @if (isLoggingOut) {
+            <span class="spinner-sm"></span>
+            <span>Déconnexion...</span>
+          } @else {
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Se déconnecter</span>
+          }
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+    <div class="dash-container">
+
+      <!-- Toast notice -->
+      @if (toastMessage) {
+        <div class="dash-toast">{{ toastMessage }}</div>
+      }
+
+      <!-- Welcome Banner -->
+      <section class="welcome-card">
+        <div class="welcome-content">
+          <div class="badge-status">
+            <span class="status-dot"></span> Compte actif &bull; {{ roleLabel }}
+          </div>
+          <h1 class="welcome-title">Bienvenue, {{ user()?.firstName }} {{ user()?.lastName }} !</h1>
+          <p class="welcome-desc">
+            Vous êtes connecté sur votre {{ spaceTitle.toLowerCase() }}. Suivez l'avancement de vos démarches administratives et accédez à vos services en toute simplicité.
+          </p>
+        </div>
+        <div class="welcome-actions">
+          <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Nouveau dossier')">
+            + Nouveau dossier
+          </button>
+          <a routerLink="/" fragment="simulateur" class="btn btn-secondary">
+            Simuler une forme juridique
+          </a>
+        </div>
+      </section>
+
+      <!-- Profile Summary Cards -->
+      <section class="profile-cards-grid">
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-label">Identité</span>
+            <span class="info-icon">👤</span>
+          </div>
+          <div class="info-value">{{ user()?.firstName }} {{ user()?.lastName }}</div>
+          <div class="info-sub">Compte enregistré sur la plateforme</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-label">Adresse e-mail</span>
+            <span class="info-icon">✉️</span>
+          </div>
+          <div class="info-value text-truncate">{{ user()?.email }}</div>
+          <div class="info-sub">Identifiant principal de connexion</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-label">Numéro de CIN</span>
+            <span class="info-icon">🪪</span>
+          </div>
+          <div class="info-value font-mono">{{ user()?.cinMasked || 'Non renseigné' }}</div>
+          <div class="info-sub">Masqué pour protéger votre confidentialité</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-label">Téléphone</span>
+            <span class="info-icon">📱</span>
+          </div>
+          <div class="info-value">{{ user()?.phone || 'Non renseigné' }}</div>
+          <div class="info-sub">Notifications & alertes de suivi</div>
+        </div>
+      </section>
+
+      <!-- Steps Overview -->
+      <section class="dossiers-section">
+        <div class="section-title-row">
+          <h2 class="section-h2">Mes démarches de création d'entreprise</h2>
+          <span class="badge-counter">0 dossier en cours</span>
+        </div>
+
+        <div class="empty-dossier-card">
+          <div class="empty-icon-wrap">📁</div>
+          <h3 class="empty-title">Aucun dossier de création démarré</h3>
+          <p class="empty-desc">
+            Choisissez la forme juridique adaptée à votre projet (Auto-Entrepreneur, SARL-AU, SARL ou SA) et lancez votre guichet unique dès aujourd'hui.
+          </p>
+          <div class="empty-actions">
+            <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Création de dossier')">
+              Démarrer mon premier dossier
+            </button>
+            <a routerLink="/" class="btn btn-outline">
+              Revoir la présentation du service
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
