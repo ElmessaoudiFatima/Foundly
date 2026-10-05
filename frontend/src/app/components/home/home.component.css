@@ -1,0 +1,4 @@
+/* HomeComponent styles rely primarily on the global design system in styles.css */
+:host {
+  display: block;
+}
