@@ -1,0 +1,334 @@
+<div class="auth-page">
+  <!-- Background decoration -->
+  <div class="auth-bg" aria-hidden="true">
+    <div class="auth-orb auth-orb--1"></div>
+    <div class="auth-orb auth-orb--2"></div>
+    <div class="auth-grid"></div>
+  </div>
+
+  <div class="auth-container auth-container--wide">
+    <!-- Header / Brand -->
+    <div class="auth-header">
+      <a routerLink="/" class="auth-brand" aria-label="Retour à l'accueil Foundly">
+        <span class="logo-icon" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#1F3864"/>
+            <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
+          </svg>
+        </span>
+        <span class="brand-name">Foundly</span>
+      </a>
+      <span class="badge-tag">Guichet Unique Maroc</span>
+    </div>
+
+    <!-- Main Card -->
+    <div class="auth-card">
+      <div class="card-intro">
+        <h1 class="card-title">Créer votre compte</h1>
+        <p class="card-subtitle">
+          Inscrivez-vous pour initier vos démarches administratives et suivre la création de votre entreprise.
+        </p>
+      </div>
+
+      <!-- Error banner -->
+      @if (errorMessage) {
+        <div class="alert alert-error" role="alert">
+          <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <div class="alert-text">{{ errorMessage }}</div>
+        </div>
+      }
+
+      <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+        <!-- Row 1: Prénom & Nom -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reg-firstname" class="form-label">Prénom <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <input
+                id="reg-firstname"
+                name="firstName"
+                type="text"
+                class="form-input"
+                [class.has-error]="fieldErrors['firstName']"
+                [(ngModel)]="firstName"
+                placeholder="Ex : Karim"
+                autocomplete="given-name"
+                required
+                [disabled]="isLoading"
+              />
+            </div>
+            @if (fieldErrors['firstName']) {
+              <span class="field-error-text">{{ fieldErrors['firstName'] }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="reg-lastname" class="form-label">Nom de famille <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <input
+                id="reg-lastname"
+                name="lastName"
+                type="text"
+                class="form-input"
+                [class.has-error]="fieldErrors['lastName']"
+                [(ngModel)]="lastName"
+                placeholder="Ex : Alami"
+                autocomplete="family-name"
+                required
+                [disabled]="isLoading"
+              />
+            </div>
+            @if (fieldErrors['lastName']) {
+              <span class="field-error-text">{{ fieldErrors['lastName'] }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Row 2: Email & Téléphone -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reg-email" class="form-label">Adresse e-mail <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <input
+                id="reg-email"
+                name="email"
+                type="email"
+                class="form-input"
+                [class.has-error]="fieldErrors['email']"
+                [(ngModel)]="email"
+                placeholder="karim.alami@exemple.ma"
+                autocomplete="email"
+                required
+                [disabled]="isLoading"
+              />
+            </div>
+            @if (fieldErrors['email']) {
+              <span class="field-error-text">{{ fieldErrors['email'] }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="reg-phone" class="form-label">Téléphone portable <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              <input
+                id="reg-phone"
+                name="phone"
+                type="tel"
+                class="form-input"
+                [class.has-error]="fieldErrors['phone']"
+                [(ngModel)]="phone"
+                placeholder="0612345678"
+                autocomplete="tel"
+                required
+                [disabled]="isLoading"
+              />
+            </div>
+            @if (fieldErrors['phone']) {
+              <span class="field-error-text">{{ fieldErrors['phone'] }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Row 3: CIN -->
+        <div class="form-group">
+          <label for="reg-cin" class="form-label">
+            Numéro de CIN (Carte Nationale d'Identité) <span class="required">*</span>
+          </label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <line x1="6" y1="9" x2="10" y2="9"/>
+              <line x1="6" y1="13" x2="18" y2="13"/>
+              <line x1="6" y1="17" x2="14" y2="17"/>
+            </svg>
+            <input
+              id="reg-cin"
+              name="cin"
+              type="text"
+              class="form-input text-uppercase"
+              [class.has-error]="fieldErrors['cin']"
+              [(ngModel)]="cin"
+              placeholder="Ex : AB123456"
+              required
+              [disabled]="isLoading"
+            />
+          </div>
+          <span class="field-hint">Pour des raisons de confidentialité, votre numéro de CIN sera masqué (ex: AB***56) sur vos documents publics.</span>
+          @if (fieldErrors['cin']) {
+            <span class="field-error-text">{{ fieldErrors['cin'] }}</span>
+          }
+        </div>
+
+        <!-- Row 4: Mot de passe & Confirmation -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reg-password" class="form-label">Mot de passe <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input
+                id="reg-password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                class="form-input"
+                [class.has-error]="fieldErrors['password']"
+                [(ngModel)]="password"
+                placeholder="12 caractères minimum"
+                autocomplete="new-password"
+                required
+                [disabled]="isLoading"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePassword()"
+                [attr.aria-label]="showPassword ? 'Masquer' : 'Afficher'"
+                tabindex="-1"
+              >
+                @if (showPassword) {
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (fieldErrors['password']) {
+              <span class="field-error-text">{{ fieldErrors['password'] }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="reg-confirmpassword" class="form-label">Confirmer le mot de passe <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input
+                id="reg-confirmpassword"
+                name="confirmPassword"
+                [type]="showConfirmPassword ? 'text' : 'password'"
+                class="form-input"
+                [class.has-error]="fieldErrors['confirmPassword']"
+                [(ngModel)]="confirmPassword"
+                placeholder="Répétez le mot de passe"
+                autocomplete="new-password"
+                required
+                [disabled]="isLoading"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="toggleConfirmPassword()"
+                [attr.aria-label]="showConfirmPassword ? 'Masquer' : 'Afficher'"
+                tabindex="-1"
+              >
+                @if (showConfirmPassword) {
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (fieldErrors['confirmPassword']) {
+              <span class="field-error-text">{{ fieldErrors['confirmPassword'] }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Password Checklist -->
+        <div class="password-checklist">
+          <div class="check-item" [class.valid]="isPasswordLongEnough">
+            <span class="check-bullet">{{ isPasswordLongEnough ? '✓' : '•' }}</span>
+            <span>Au moins 12 caractères</span>
+          </div>
+          <div class="check-item" [class.valid]="doPasswordsMatch">
+            <span class="check-bullet">{{ doPasswordsMatch ? '✓' : '•' }}</span>
+            <span>Les deux mots de passe correspondent</span>
+          </div>
+        </div>
+
+        <!-- Terms checkbox -->
+        <div class="form-check-row">
+          <label class="checkbox-label">
+            <input type="checkbox" name="terms" [(ngModel)]="acceptTerms" required [disabled]="isLoading" />
+            <span>
+              J'accepte les conditions d'utilisation et la politique de confidentialité de la plateforme Foundly.
+            </span>
+          </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-submit" [disabled]="isLoading">
+          @if (isLoading) {
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Création du compte en cours...</span>
+          } @else {
+            <span>Créer mon compte</span>
+            <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          }
+        </button>
+      </form>
+
+      <!-- Card footer -->
+      <div class="card-footer">
+        <p class="footer-text">
+          Vous possédez déjà un compte Foundly ?
+          <a routerLink="/login" class="link-bold">Connectez-vous ici</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Security note -->
+    <div class="auth-security-note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span>Plateforme sécurisée &bull; Données protégées &bull; Confidentialité garantie</span>
+    </div>
+
+    <!-- Back to home -->
+    <div class="auth-back-home">
+      <a routerLink="/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Retour à l'accueil
+      </a>
+    </div>
+  </div>
+</div>
