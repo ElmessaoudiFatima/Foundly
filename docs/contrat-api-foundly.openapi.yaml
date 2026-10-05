@@ -812,7 +812,8 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT d'accès envoyé sous la forme `Authorization: Bearer <token>`.
+      description: |
+        JWT d'accès envoyé sous la forme `Authorization: Bearer <token>`.
   parameters:
     DossierId:
       name: dossierId
