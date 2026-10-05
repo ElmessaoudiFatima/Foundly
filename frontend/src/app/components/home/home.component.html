@@ -1,0 +1,164 @@
+<header class="navbar" id="navbar" [class.scrolled]="isScrolled">
+  <div class="nav-inner">
+    <a routerLink="/" class="nav-brand" aria-label="Foundly, accueil">
+      <span class="logo-icon" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#1F3864"/>
+          <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
+        </svg>
+      </span>
+      <span class="brand-name">Foundly</span>
+    </a>
+
+    <nav class="nav-links" id="nav-links" [class.open]="menuOpen" aria-label="Navigation principale">
+      <a href="#fonctionnement" class="nav-link" (click)="closeMenu()">Comment ça marche</a>
+      <a href="#formes" class="nav-link" (click)="closeMenu()">Formes juridiques</a>
+      <a href="#simulateur" class="nav-link" (click)="closeMenu()">Simulateur</a>
+      <a href="#faq" class="nav-link" (click)="closeMenu()">FAQ</a>
+    </nav>
+
+    <div class="nav-actions">
+      @if (authService.isAuthenticated()) {
+        <a routerLink="/dashboard" class="btn btn-primary">
+          <span>Mon Espace ({{ authService.currentUser()?.firstName }})</span>
+        </a>
+        <button type="button" class="btn btn-ghost" (click)="logout()">
+          Déconnexion
+        </button>
+      } @else {
+        <a routerLink="/login" class="btn btn-ghost">Se connecter</a>
+        <a routerLink="/register" class="btn btn-primary">Commencer gratuitement</a>
+      }
+    </div>
+
+    <button type="button" class="hamburger" [class.active]="menuOpen" [attr.aria-expanded]="menuOpen" aria-label="Ouvrir le menu" (click)="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <div class="hero-bg" aria-hidden="true"><div class="hero-orb hero-orb--1"></div><div class="hero-orb hero-orb--2"></div><div class="hero-orb hero-orb--3"></div><div class="hero-grid"></div></div>
+    <div class="hero-inner">
+      <div class="hero-content">
+        <p class="section-tag">La création d'entreprise, simplifiée au Maroc</p>
+        <h1 class="hero-title">Créez votre entreprise<br><span class="gradient-text">en quelques clics.</span></h1>
+        <p class="hero-description">De l'idée à l'immatriculation, Foundly vous guide à chaque étape de la création de votre entreprise.</p>
+        <div class="hero-actions" id="hero-actions">
+          <a routerLink="/register" class="btn btn-primary btn-lg">Commencer maintenant <span aria-hidden="true">→</span></a>
+          <a href="#fonctionnement" class="btn btn-outline btn-lg">Voir comment ça marche <span aria-hidden="true">▷</span></a>
+        </div>
+        <div class="hero-stats" id="hero-stats">
+          <div class="stat"><span class="stat-number">109 656</span><span class="stat-label">entreprises créées au Maroc en 2025</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-number">9-15 <span class="stat-suffix">j</span></span><span class="stat-label">délai moyen de traitement</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-number">7</span><span class="stat-label">administrations centralisées</span></div>
+        </div>
+      </div>
+      <div class="hero-image-wrap"><img src="/images/image.png" alt="Aperçu de la plateforme Foundly" class="hero-image" /></div>
+    </div>
+    <a href="#fonctionnement" class="scroll-indicator" aria-label="Défiler vers le bas"><span class="scroll-mouse"><span class="scroll-wheel"></span></span></a>
+  </section>
+
+  <section class="partners" aria-label="Administrations intégrées">
+    <p class="partners-label">Administrations intégrées dans la plateforme</p>
+    <div class="partners-track"><div class="partners-inner">
+      <span class="partner-chip">OMPIC</span><span class="partner-chip">CRI</span><span class="partner-chip">DGI</span><span class="partner-chip">CNSS</span><span class="partner-chip">Tribunal de commerce</span><span class="partner-chip">Banque</span><span class="partner-chip">Journal officiel</span>
+    </div></div>
+  </section>
+
+  <section class="how-it-works" id="fonctionnement">
+    <div class="section-container">
+      <div class="section-header"><span class="section-tag">Processus guidé</span><h2 class="section-title">De l'idée à l'immatriculation,<br>étape par étape.</h2><p class="section-subtitle">Foundly vous accompagne tout au long des étapes légales de création d'entreprise au Maroc.</p></div>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><div class="step-icon-wrap step-icon-wrap--blue" aria-hidden="true">◎</div><h3>Assistant de choix</h3><p>Répondez à quelques questions et Foundly détermine votre forme juridique idéale et génère votre checklist personnalisée.</p></article>
+        <article class="step-card"><span class="step-number">02</span><div class="step-icon-wrap step-icon-wrap--indigo" aria-hidden="true">▤</div><h3>Dépôt de documents</h3><p>Déposez vos pièces justificatives de façon sécurisée. Foundly vérifie la complétude de votre dossier avant envoi.</p></article>
+        <article class="step-card"><span class="step-number">03</span><div class="step-icon-wrap step-icon-wrap--cyan" aria-hidden="true">⌁</div><h3>Suivi en temps réel</h3><p>Suivez votre dossier auprès de chaque organisme, de l'OMPIC à la CNSS, avec des notifications à chaque validation.</p></article>
+        <article class="step-card"><span class="step-number">04</span><div class="step-icon-wrap step-icon-wrap--green" aria-hidden="true">✓</div><h3>Immatriculation obtenue</h3><p>Téléchargez votre extrait RC, identifiant fiscal et attestation CNSS directement depuis Foundly.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="formes-section" id="formes">
+    <div class="section-container">
+      <div class="section-header"><span class="section-tag">Formes juridiques</span><h2 class="section-title">Quelle structure choisir ?</h2><p class="section-subtitle">Foundly prend en charge les quatre formes juridiques les plus courantes au Maroc.</p></div>
+      <div class="formes-grid">
+        @for (form of legalForms; track form.name) {
+          <article class="forme-card" [class.forme-card--featured]="form.featured">
+            <div class="forme-badge" [style.background]="form.color">{{ form.name }} @if (form.featured) { <span class="badge-popular">Populaire</span> }</div>
+            <ul class="forme-list">@for (item of form.points; track item.text) { <li><span [class.li-check]="item.positive" [class.li-x]="!item.positive">{{ item.positive ? '✓' : '×' }}</span> {{ item.text }}</li> }</ul>
+            <div class="forme-cost"><span class="cost-label">Coût estimé</span><span class="cost-value">{{ form.cost }}</span></div>
+            <a routerLink="/register" class="btn btn-primary btn-sm">Commencer</a>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="simulator-section" id="simulateur">
+    <div class="section-container">
+      <div class="section-header"><span class="section-tag">Simulateur</span><h2 class="section-title">Combien de temps et combien ça coûte ?</h2><p class="section-subtitle">Estimez le délai et le coût de création selon votre forme juridique.</p></div>
+      <div class="simulator-card">
+        <div class="sim-controls">
+          <div class="sim-field"><label for="sim-forme">Forme juridique</label><select id="sim-forme" [(ngModel)]="selectedForm"><option value="ae">Auto-Entrepreneur</option><option value="sarlau">SARL-AU</option><option value="sarl">SARL</option><option value="sa">SA</option></select></div>
+          <div class="sim-field"><label for="sim-region">Région</label><select id="sim-region" [(ngModel)]="selectedRegion"><option value="casa">Casablanca-Settat</option><option value="rabat">Rabat-Salé-Kénitra</option><option value="tanger">Tanger-Tétouan-Al Hoceïma</option><option value="fes">Fès-Meknès</option><option value="marrakech">Marrakech-Safi</option></select></div>
+          <button type="button" class="btn btn-primary" (click)="runSimulation()">Simuler</button>
+        </div>
+        <div class="sim-results">
+          <article class="sim-result-card"><div class="res-icon res-icon--blue" aria-hidden="true">◷</div><div class="res-info"><span class="res-label">Délai estimé</span><span class="res-value">{{ simulation.delay }}</span></div></article>
+          <article class="sim-result-card"><div class="res-icon res-icon--green" aria-hidden="true">＄</div><div class="res-info"><span class="res-label">Coût estimé (hors capital)</span><span class="res-value">{{ simulation.cost }}</span></div></article>
+          <article class="sim-result-card"><div class="res-icon res-icon--purple" aria-hidden="true">⌁</div><div class="res-info"><span class="res-label">Nombre d'étapes</span><span class="res-value">{{ simulation.steps }}</span></div></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section" id="faq">
+    <div class="section-container">
+      <div class="section-header"><span class="section-tag">FAQ</span><h2 class="section-title">Questions fréquentes</h2></div>
+      <div class="faq-list">
+        @for (item of faqs; track item.question; let index = $index) {
+          <article class="faq-item" [class.open]="openFaq === index">
+            <button type="button" class="faq-question" [attr.aria-expanded]="openFaq === index" (click)="toggleFaq(index)">{{ item.question }}<span class="faq-arrow" aria-hidden="true">▾</span></button>
+            <div class="faq-answer"><p>{{ item.answer }}</p></div>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section" id="cta">
+    <div class="cta-inner"><div class="cta-orb cta-orb--1"></div><div class="cta-orb cta-orb--2"></div><h2 class="cta-title">Prêt à lancer votre entreprise ?</h2><p class="cta-sub">Créez votre compte gratuitement et commencez votre dossier en moins de 5 minutes.</p><a routerLink="/register" class="btn btn-white btn-lg">Créer un compte, c'est gratuit <span aria-hidden="true">→</span></a></div>
+  </section>
+</main>
+
+<footer class="footer" id="footer">
+  <div class="footer-inner">
+    <div class="footer-brand"><a routerLink="/" class="nav-brand"><span class="logo-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#1F3864"/><path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/></svg></span><span class="brand-name">Foundly</span></a><p class="footer-desc">Plateforme de digitalisation de la création d'entreprise au Maroc.</p></div>
+    <div class="footer-links">
+      <div class="footer-col">
+        <h4>Plateforme</h4>
+        <a href="#fonctionnement">Comment ça marche</a>
+        <a href="#formes">Formes juridiques</a>
+        <a href="#simulateur">Simulateur</a>
+      </div>
+      <div class="footer-col">
+        <h4>Espaces</h4>
+        <a routerLink="/login">Espace Entrepreneur</a>
+        <a routerLink="/login">Espace Agent CRI</a>
+        <a routerLink="/login">Espace Administration</a>
+      </div>
+      <div class="footer-col">
+        <h4>Références légales</h4>
+        <a href="#faq">Loi n°47-18 (CRI)</a>
+        <a href="#faq">Loi n°88-17 (e-création)</a>
+        <a href="#faq">Loi n°09-08 (données)</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom"><p>© 2026 Foundly</p></div>
+</footer>
+
+@if (toastMessage) { <div class="foundly-toast" role="status">{{ toastMessage }}</div> }
