@@ -40,11 +40,15 @@ public class Utilisateur {
     @Column(nullable = false)
     private boolean actif;
 
+    @Column(length = 100)
+    private String organisme;
+
+    @Column
+    private Instant lastActivityAt;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
-
-
 
     public Utilisateur() {}
 
@@ -74,6 +78,12 @@ public class Utilisateur {
 
     public boolean isActif() { return actif; }
     public void setActif(boolean actif) { this.actif = actif; }
+
+    public String getOrganisme() { return organisme; }
+    public void setOrganisme(String organisme) { this.organisme = organisme; }
+
+    public Instant getLastActivityAt() { return lastActivityAt; }
+    public void setLastActivityAt(Instant lastActivityAt) { this.lastActivityAt = lastActivityAt; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

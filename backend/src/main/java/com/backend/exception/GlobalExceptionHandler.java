@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
@@ -84,6 +85,22 @@ public class GlobalExceptionHandler {
         ApiError error = new ApiError(401, "INVALID_REFRESH_TOKEN",
                 ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ApiError> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(404, "NOT_FOUND",
+                ex.getMessage() != null ? ex.getMessage() : "Ressource introuvable.",
+                request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(400, "BAD_REQUEST",
+                ex.getMessage() != null ? ex.getMessage() : "Requête invalide.",
+                request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     // -----------------------------------------------------------------------
