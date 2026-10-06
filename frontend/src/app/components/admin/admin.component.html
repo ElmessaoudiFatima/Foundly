@@ -806,8 +806,90 @@
         </div>
       }
 
+      <!-- ============================================================== -->
+      <!-- SECTION : ORGANISMES PARTENAIRES                               -->
+      <!-- ============================================================== -->
+      @if (activeTab === 'organismes') {
+        <div class="page-header-row">
+          <div>
+            <p class="national-tag">Administration centrale</p>
+            <h1 class="page-main-title">Organismes partenaires</h1>
+            <p class="page-main-subtitle">Vue d'ensemble des organismes, agents et étapes pris en charge.</p>
+          </div>
+          <button class="btn btn-primary org-new-btn" id="btn-new-organisme" (click)="openCreateOrganismeModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouvel organisme
+          </button>
+        </div>
+
+        <!-- Loading state -->
+        @if (isLoadingOrganismes) {
+          <div class="org-loading-row">
+            <div class="org-skeleton-card" *ngFor="let i of [1,2,3,4,5,6]"></div>
+          </div>
+        }
+
+        <!-- Empty state -->
+        @if (!isLoadingOrganismes && organismes.length === 0) {
+          <div class="org-empty-state">
+            <div class="org-empty-icon">🏛️</div>
+            <h3>Aucun organisme configuré</h3>
+            <p>Cliquez sur <strong>Nouvel organisme</strong> pour en ajouter un.</p>
+          </div>
+        }
+
+        <!-- Cards grid -->
+        @if (!isLoadingOrganismes && organismes.length > 0) {
+          <div class="org-grid">
+            @for (org of organismes; track org.code) {
+              <div class="org-card" [id]="'org-card-' + org.code">
+                <!-- Header: badge + statut -->
+                <div class="org-card-header">
+                  <div class="org-badge-code">{{ getOrganismeInitials(org) }}</div>
+                  <span class="org-status-badge org-status-active">
+                    <span class="org-status-dot"></span>Actif
+                  </span>
+                </div>
+
+                <!-- Nom complet -->
+                <h3 class="org-card-name">{{ org.name }}</h3>
+
+                <!-- Stats -->
+                <div class="org-card-stats">
+                  <div class="org-stat-row">
+                    <span class="org-stat-label">Agents actifs</span>
+                    <span class="org-stat-value">{{ org.activeAgentCount }}</span>
+                  </div>
+                  <div class="org-stat-row">
+                    <span class="org-stat-label">Étapes gérées</span>
+                    <span class="org-stat-value org-stat-steps">
+                      @if (org.managedSteps && org.managedSteps.length > 0) {
+                        {{ org.managedSteps.join(', ') }}
+                      } @else {
+                        <span class="org-stat-empty">—</span>
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="org-card-actions">
+                  <button class="org-link-btn" (click)="setTab('agents'); filterOrganization = org.code">
+                    Voir les agents
+                  </button>
+                  <button class="org-configure-btn" [id]="'btn-configure-' + org.code" (click)="openConfigureOrganisme(org)">
+                    Configurer
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
       <!-- Other sections placeholder -->
-      @if (activeTab === 'organismes' || activeTab === 'workflows' || activeTab === 'exports' || activeTab === 'profile') {
+      @if (activeTab === 'workflows' || activeTab === 'exports' || activeTab === 'profile') {
         <div class="coming-soon-card">
           <div class="coming-icon">⚙️</div>
           <h2>Module d'administration</h2>
@@ -815,6 +897,7 @@
           <button type="button" class="btn btn-primary" (click)="setTab('dashboard')">Retour au tableau de bord</button>
         </div>
       }
+
 
     </main>
   </div>
@@ -987,3 +1070,105 @@
     </div>
   </div>
 }
+
+<!-- ============================================================== -->
+<!-- MODAL : CRÉER UN ORGANISME                                     -->
+<!-- ============================================================== -->
+@if (isCreateOrganismeModalOpen) {
+  <div class="modal-backdrop" (click)="closeCreateOrganismeModal()" id="modal-create-organisme">
+    <div class="modal-card org-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header org-modal-header-styled">
+        <div class="org-modal-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <path d="M9 9h6M9 12h6M9 15h4"/>
+          </svg>
+        </div>
+        <button type="button" class="modal-close-btn org-modal-close" (click)="closeCreateOrganismeModal()">&times;</button>
+      </div>
+      <div class="org-modal-title-block">
+        <p class="org-modal-tag">NOUVEL ORGANISME</p>
+        <h3 class="modal-title">Créer un organisme partenaire</h3>
+        <p class="modal-subtitle">Renseignez les informations principales. Les agents pourront être ajoutés après la création.</p>
+      </div>
+      <div class="modal-body">
+        @if (createOrganismeError) {
+          <div class="form-error-alert">{{ createOrganismeError }}</div>
+        }
+        <div class="form-group">
+          <label class="form-label" for="org-nom">Nom</label>
+          <input id="org-nom" type="text" [(ngModel)]="newOrganisme.name" name="org-nom"
+                 class="form-input" placeholder="Nom de l'organisme"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="org-sigle">Sigle</label>
+          <input id="org-sigle" type="text" [(ngModel)]="newOrganisme.code" name="org-sigle"
+                 class="form-input" placeholder="Ex. ANCFCC" style="text-transform: uppercase;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="org-desc">Description</label>
+          <textarea id="org-desc" [(ngModel)]="newOrganisme.description" name="org-desc"
+                    class="form-input org-textarea" rows="3"
+                    placeholder="Décrivez brièvement le rôle de l'organisme"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeCreateOrganismeModal()">Annuler</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-organisme"
+                [disabled]="isSubmittingOrganisme"
+                (click)="submitCreateOrganisme()">
+          @if (isSubmittingOrganisme) { Création… }
+          @else {
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Créer l'organisme
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODAL : CONFIGURER UN ORGANISME (PATCH)                        -->
+<!-- ============================================================== -->
+@if (isConfigureOrganismeModalOpen && configuringOrganisme) {
+  <div class="modal-backdrop" (click)="closeConfigureOrganisme()" id="modal-configure-organisme">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Configurer l'organisme</h3>
+          <p class="modal-subtitle">
+            <strong>{{ configuringOrganisme.code }}</strong> — Modifiez le nom ou la description.
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeConfigureOrganisme()">&times;</button>
+      </div>
+      <div class="modal-body">
+        @if (configOrganismeError) {
+          <div class="form-error-alert">{{ configOrganismeError }}</div>
+        }
+        <div class="form-group">
+          <label class="form-label" for="config-org-nom">Nom complet</label>
+          <input id="config-org-nom" type="text" [(ngModel)]="configOrganismeForm.name"
+                 name="config-org-nom" class="form-input" placeholder="Nom de l'organisme"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="config-org-desc">Description</label>
+          <textarea id="config-org-desc" [(ngModel)]="configOrganismeForm.description"
+                    name="config-org-desc" class="form-input org-textarea" rows="3"
+                    placeholder="Description du rôle de l'organisme"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeConfigureOrganisme()">Annuler</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-configure-organisme"
+                [disabled]="isSubmittingConfigOrganisme"
+                (click)="submitUpdateOrganisme()">
+          @if (isSubmittingConfigOrganisme) { Enregistrement… }
+          @else { Enregistrer les modifications }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

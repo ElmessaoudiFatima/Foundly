@@ -1192,3 +1192,272 @@
 }
 
 .coming-icon { font-size: 44px; }
+
+/* ===================================================================
+   7. Section Organismes
+   =================================================================== */
+
+/* Header button */
+.org-new-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Grid */
+.org-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1200px) {
+  .org-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Card */
+.org-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border, #DDE6F5);
+  border-radius: 18px;
+  padding: 22px 22px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(31, 56, 100, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.18s ease;
+}
+
+.org-card:hover {
+  box-shadow: 0 6px 24px rgba(31, 56, 100, 0.10);
+  transform: translateY(-2px);
+}
+
+/* Card header row */
+.org-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Code badge (sigle) */
+.org-badge-code {
+  background: var(--bg-section, #F0F5FF);
+  color: var(--navy, #1F3864);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #DDE6F5);
+}
+
+/* Active status badge */
+.org-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.org-status-active {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.org-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #059669;
+  display: inline-block;
+}
+
+/* Card name */
+.org-card-name {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy, #1F3864);
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Stats block */
+.org-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0 4px 0;
+  border-top: 1px solid var(--border, #F1F5F9);
+}
+
+.org-stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.org-stat-label {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.org-stat-value {
+  font-weight: 700;
+  color: var(--navy, #1F3864);
+  font-size: 13px;
+}
+
+.org-stat-steps {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-stat-empty {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+/* Card actions row */
+.org-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.org-link-btn {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748B;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.org-link-btn:hover {
+  color: var(--accent, #2E5A9C);
+}
+
+.org-configure-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #2E5A9C);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.org-configure-btn:hover {
+  color: var(--navy, #1F3864);
+}
+
+/* Loading skeletons */
+.org-loading-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.org-skeleton-card {
+  height: 200px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #F1F5F9 25%, #E8EFF8 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.org-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 24px;
+  text-align: center;
+  background: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 18px;
+  color: #64748B;
+}
+
+.org-empty-icon { font-size: 44px; }
+
+/* Modal create organisme – icon header */
+.org-modal-header-styled {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.org-modal-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--bg-section, #F0F5FF);
+  border: 1px solid var(--border, #DDE6F5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy, #1F3864);
+  margin-left: 24px;
+  margin-top: 20px;
+}
+
+.org-modal-close {
+  margin-right: 20px;
+  margin-top: 16px;
+}
+
+.org-modal-title-block {
+  padding: 12px 24px 0 24px;
+}
+
+.org-modal-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--accent, #2E5A9C);
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+}
+
+/* Textarea */
+.org-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+

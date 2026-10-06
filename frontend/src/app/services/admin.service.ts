@@ -7,7 +7,10 @@ import {
   PagedDossiers,
   PagedAgents,
   AgentAdminItem,
-  CreateAgentPayload
+  CreateAgentPayload,
+  OrganismeItem,
+  OrganismeCreatePayload,
+  OrganismeUpdatePayload
 } from '../models/admin.models';
 
 @Injectable({
@@ -98,4 +101,18 @@ export class AdminService {
       { headers: { 'Content-Type': 'application/json' } }
     );
   }
+
+  // ===================== ORGANISMES =====================
+  getOrganismes(): Observable<OrganismeItem[]> {
+    return this.http.get<OrganismeItem[]>(`${this.baseUrl}/organizations`);
+  }
+
+  createOrganisme(payload: OrganismeCreatePayload): Observable<OrganismeItem> {
+    return this.http.post<OrganismeItem>(`${this.baseUrl}/organizations`, payload);
+  }
+
+  updateOrganisme(code: string, payload: OrganismeUpdatePayload): Observable<OrganismeItem> {
+    return this.http.patch<OrganismeItem>(`${this.baseUrl}/organizations/${encodeURIComponent(code)}`, payload);
+  }
 }
+

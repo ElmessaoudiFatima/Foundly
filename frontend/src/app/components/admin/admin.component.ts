@@ -10,7 +10,10 @@ import {
   PagedDossiers,
   AgentAdminItem,
   PagedAgents,
-  CreateAgentPayload
+  CreateAgentPayload,
+  OrganismeItem,
+  OrganismeCreatePayload,
+  OrganismeUpdatePayload
 } from '../../models/admin.models';
 
 type AdminTab = 'dashboard' | 'dossiers' | 'agents' | 'organismes' | 'workflows' | 'exports' | 'profile';
@@ -97,6 +100,23 @@ export class AdminComponent implements OnInit {
   // View agent modal
   selectedAgent: AgentAdminItem | null = null;
 
+  // ===================== ORGANISMES =====================
+  organismes: OrganismeItem[] = [];
+  isLoadingOrganismes = false;
+
+  // Modal: créer un organisme
+  isCreateOrganismeModalOpen = false;
+  isSubmittingOrganisme = false;
+  createOrganismeError = '';
+  newOrganisme: OrganismeCreatePayload = { name: '', code: '', description: '' };
+
+  // Modal: configurer (PATCH) un organisme
+  isConfigureOrganismeModalOpen = false;
+  isSubmittingConfigOrganisme = false;
+  configOrganismeError = '';
+  configuringOrganisme: OrganismeItem | null = null;
+  configOrganismeForm: OrganismeUpdatePayload = { name: '', description: '' };
+
   ngOnInit(): void {
     this.loadDashboard();
     this.loadDossiers();
@@ -157,6 +177,8 @@ export class AdminComponent implements OnInit {
       this.loadDossiers();
     } else if (tab === 'agents') {
       this.loadAgents();
+    } else if (tab === 'organismes') {
+      this.loadOrganismes();
     }
   }
 
@@ -418,6 +440,102 @@ export class AdminComponent implements OnInit {
 
   logout(): void {
     this.authService.logout().subscribe();
+  }
+
+  // ===================== ORGANISMES LOGIC =====================
+  loadOrganismes(): void {
+    this.isLoadingOrganismes = true;
+    this.adminService.getOrganismes().subscribe({
+      next: (data) => {
+        this.organismes = data;
+        this.isLoadingOrganismes = false;
+      },
+      error: () => {
+        this.isLoadingOrganismes = false;
+        this.showToast('Impossible de charger les organismes.');
+      }
+    });
+  }
+
+  openCreateOrganismeModal(): void {
+    this.newOrganisme = { name: '', code: '', description: '' };
+    this.createOrganismeError = '';
+    this.isCreateOrganismeModalOpen = true;
+  }
+
+  closeCreateOrganismeModal(): void {
+    this.isCreateOrganismeModalOpen = false;
+    this.createOrganismeError = '';
+  }
+
+  submitCreateOrganisme(): void {
+    if (!this.newOrganisme.name.trim() || !this.newOrganisme.code.trim() || !this.newOrganisme.description.trim()) {
+      this.createOrganismeError = 'Tous les champs sont obligatoires.';
+      return;
+    }
+    this.isSubmittingOrganisme = true;
+    this.createOrganismeError = '';
+    const payload: OrganismeCreatePayload = {
+      name: this.newOrganisme.name.trim(),
+      code: this.newOrganisme.code.trim().toUpperCase(),
+      description: this.newOrganisme.description.trim()
+    };
+    this.adminService.createOrganisme(payload).subscribe({
+      next: (created) => {
+        this.organismes = [...this.organismes, created];
+        this.isSubmittingOrganisme = false;
+        this.closeCreateOrganismeModal();
+        this.showToast(`Organisme « ${created.name} » créé avec succès.`);
+      },
+      error: (err) => {
+        this.isSubmittingOrganisme = false;
+        const msg = err?.error?.message || 'Erreur lors de la création de l\'organisme.';
+        this.createOrganismeError = typeof msg === 'string' ? msg : 'Erreur lors de la création.';
+      }
+    });
+  }
+
+  openConfigureOrganisme(org: OrganismeItem): void {
+    this.configuringOrganisme = org;
+    this.configOrganismeForm = { name: org.name, description: org.description };
+    this.configOrganismeError = '';
+    this.isConfigureOrganismeModalOpen = true;
+  }
+
+  closeConfigureOrganisme(): void {
+    this.isConfigureOrganismeModalOpen = false;
+    this.configuringOrganisme = null;
+    this.configOrganismeError = '';
+  }
+
+  submitUpdateOrganisme(): void {
+    if (!this.configuringOrganisme) return;
+    if (!this.configOrganismeForm.name?.trim() && !this.configOrganismeForm.description?.trim()) {
+      this.configOrganismeError = 'Au moins un champ (Nom ou Description) est requis.';
+      return;
+    }
+    this.isSubmittingConfigOrganisme = true;
+    this.configOrganismeError = '';
+    const payload: OrganismeUpdatePayload = {};
+    if (this.configOrganismeForm.name?.trim()) payload.name = this.configOrganismeForm.name.trim();
+    if (this.configOrganismeForm.description?.trim() !== undefined) payload.description = this.configOrganismeForm.description?.trim();
+    this.adminService.updateOrganisme(this.configuringOrganisme.code, payload).subscribe({
+      next: (updated) => {
+        this.organismes = this.organismes.map(o => o.code === updated.code ? updated : o);
+        this.isSubmittingConfigOrganisme = false;
+        this.showToast(`Organisme « ${updated.name} » mis à jour.`);
+        this.closeConfigureOrganisme();
+      },
+      error: (err) => {
+        this.isSubmittingConfigOrganisme = false;
+        const msg = err?.error?.message || 'Erreur lors de la mise à jour.';
+        this.configOrganismeError = typeof msg === 'string' ? msg : 'Erreur lors de la mise à jour.';
+      }
+    });
+  }
+
+  getOrganismeInitials(org: OrganismeItem): string {
+    return org.code.substring(0, 3);
   }
 
   showToast(message: string): void {

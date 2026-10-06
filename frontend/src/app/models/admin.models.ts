@@ -84,3 +84,22 @@ export interface CreateAgentPayload {
   phone?: string;
   cin?: string;
 }
+
+export interface OrganismeItem {
+  code: string;
+  name: string;
+  description: string;
+  activeAgentCount: number;
+  managedSteps: string[];
+}
+
+export interface OrganismeCreatePayload {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export interface OrganismeUpdatePayload {
+  name?: string;
+  description?: string;
+}
