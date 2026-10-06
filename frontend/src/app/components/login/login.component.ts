@@ -58,7 +58,11 @@ export class LoginComponent implements OnInit {
     this.authService.login({ email: trimmedEmail, password: this.password }).subscribe({
       next: (session) => {
         this.isLoading = false;
-        this.router.navigate(['/dashboard']);
+        if (session.user.role === 'ADMINISTRATEUR') {
+          this.router.navigate(['/admin']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;

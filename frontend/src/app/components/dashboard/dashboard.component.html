@@ -62,9 +62,15 @@
           </p>
         </div>
         <div class="welcome-actions">
-          <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Nouveau dossier')">
-            + Nouveau dossier
-          </button>
+          @if (user()?.role === 'ADMINISTRATEUR') {
+            <a routerLink="/admin" class="btn btn-primary" style="background: #0D9488; border-color: #0D9488;">
+              Accéder au pilotage Admin &rarr;
+            </a>
+          } @else {
+            <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Nouveau dossier')">
+              + Nouveau dossier
+            </button>
+          }
           <a routerLink="/" fragment="simulateur" class="btn btn-secondary">
             Simuler une forme juridique
           </a>

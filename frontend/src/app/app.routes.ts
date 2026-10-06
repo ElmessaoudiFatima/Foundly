@@ -3,7 +3,9 @@ import { HomeComponent } from './components/home/home.component';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { AdminComponent } from './components/admin/admin.component';
 import { authGuard, guestGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -28,6 +30,12 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [authGuard],
     title: 'Mon Espace Entrepreneur — Foundly'
+  },
+  {
+    path: 'admin',
+    component: AdminComponent,
+    canActivate: [adminGuard],
+    title: 'Administration centrale — Foundly'
   },
   {
     path: '**',

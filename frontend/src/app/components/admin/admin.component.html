@@ -1,0 +1,989 @@
+<div class="admin-layout">
+  <!-- Toast message -->
+  @if (toastMessage) {
+    <div class="admin-toast">
+      <span class="toast-dot"></span>
+      <span>{{ toastMessage }}</span>
+    </div>
+  }
+
+  <!-- Left Sidebar -->
+  <aside class="admin-sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <a routerLink="/" class="brand-logo-wrap">
+        <svg class="brand-logo-svg" width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#1F3864"/>
+          <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
+        </svg>
+        <span class="brand-title">Foundly</span>
+      </a>
+      <span class="badge-admin">ADMIN</span>
+    </div>
+
+    <!-- Access Level Card -->
+    <div class="access-level-card">
+      <div class="access-icon-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="access-meta">
+        <span class="access-sub">NIVEAU D'ACCÈS</span>
+        <span class="access-label">Supervision nationale</span>
+      </div>
+    </div>
+
+    <!-- Navigation Items -->
+    <nav class="sidebar-nav">
+      <!-- 1. Tableau de bord -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'dashboard'"
+        (click)="setTab('dashboard')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        <span>Tableau de bord</span>
+      </button>
+
+      <!-- 2. Tous les dossiers -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'dossiers'"
+        (click)="setTab('dossiers')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Tous les dossiers</span>
+      </button>
+
+      <!-- 3. Comptes agents -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'agents'"
+        (click)="setTab('agents')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Comptes agents</span>
+      </button>
+
+      <!-- 4. Organismes -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'organismes'"
+        (click)="setTab('organismes')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 21h18"/>
+          <path d="M9 8h1"/>
+          <path d="M9 12h1"/>
+          <path d="M9 16h1"/>
+          <path d="M14 8h1"/>
+          <path d="M14 12h1"/>
+          <path d="M14 16h1"/>
+          <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/>
+        </svg>
+        <span>Organismes</span>
+      </button>
+
+      <!-- 5. Workflows -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'workflows'"
+        (click)="setTab('workflows')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="18" cy="18" r="3"/>
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="6" cy="18" r="3"/>
+          <path d="M6 9v6"/>
+          <path d="M9 6h5a4 4 0 0 1 4 4v5"/>
+        </svg>
+        <span>Workflows</span>
+      </button>
+
+      <!-- 6. Exports -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'exports'"
+        (click)="setTab('exports')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Exports</span>
+      </button>
+
+      <!-- 7. Mon profil -->
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeTab === 'profile'"
+        (click)="setTab('profile')">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Mon profil</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Actions -->
+    <div class="sidebar-bottom">
+      <button type="button" class="logout-btn" (click)="logout()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span>Déconnexion</span>
+      </button>
+      <div class="sidebar-footer">Foundly Admin - v1.0</div>
+    </div>
+  </aside>
+
+  <!-- Main Wrapper -->
+  <div class="admin-main-wrapper">
+    <!-- Top Bar -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <span class="topbar-breadcrumb">Administration centrale</span>
+        <h2 class="topbar-section-title">
+          @if (activeTab === 'dashboard') { Tableau de bord }
+          @else if (activeTab === 'dossiers') { Tous les dossiers }
+          @else if (activeTab === 'agents') { Comptes agents }
+          @else if (activeTab === 'organismes') { Organismes partenaires }
+          @else if (activeTab === 'workflows') { Configuration des workflows }
+          @else if (activeTab === 'exports') { Exports & Rapports }
+          @else { Profil administrateur }
+        </h2>
+      </div>
+
+      <div class="topbar-right">
+        <a href="javascript:void(0)" class="topbar-link" (click)="showToast('Centre d\'aide Foundly Admin — documentation disponible.')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Centre d'aide</span>
+        </a>
+
+        <button type="button" class="icon-circle-btn" (click)="showToast('Aucune alerte critique en cours.')" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="badge-dot"></span>
+        </button>
+
+        <div class="admin-user-chip">
+          <div class="admin-avatar">{{ userInitials }}</div>
+          <div class="admin-user-meta">
+            <span class="admin-name">{{ user()?.firstName }} {{ user()?.lastName }}</span>
+            <span class="admin-role">Administrateur Foundly</span>
+          </div>
+          <svg class="chevron-down" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="admin-content">
+
+      <!-- ============================================================== -->
+      <!-- SECTION 1 : TABLEAU DE BORD                                   -->
+      <!-- ============================================================== -->
+      @if (activeTab === 'dashboard') {
+        <div class="dashboard-view">
+          <!-- Page Header with Subtitle & Filters -->
+          <div class="page-header-row">
+            <div>
+              <div class="national-tag">VUE NATIONALE &bull; {{ nationalViewDate | uppercase }}</div>
+              <h1 class="page-main-title">Pilotage de la plateforme</h1>
+              <p class="page-main-subtitle">Suivez les volumes, la performance et les points de vigilance.</p>
+            </div>
+
+            <div class="header-filters-row">
+              <div class="select-pill-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <select [(ngModel)]="selectedPeriod" (ngModelChange)="onDashboardFilterChange()" class="select-pill">
+                  <option value="6 derniers mois">6 derniers mois</option>
+                  <option value="3 derniers mois">3 derniers mois</option>
+                  <option [value]="'Année ' + currentYear">Année {{ currentYear }}</option>
+                </select>
+              </div>
+
+              <div class="select-pill-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1"/>
+                </svg>
+                <select [(ngModel)]="selectedRegionDashboard" (ngModelChange)="onDashboardFilterChange()" class="select-pill">
+                  <option value="Toutes les régions">Toutes les régions</option>
+                  <option value="Casablanca-Settat">Casablanca-Settat</option>
+                  <option value="Rabat-Salé-Kénitra">Rabat-Salé-Kénitra</option>
+                  <option value="Tanger-Tétouan-Al Hoceïma">Tanger-Tétouan-Al Hoceïma</option>
+                  <option value="Marrakech-Safi">Marrakech-Safi</option>
+                  <option value="Fès-Meknès">Fès-Meknès</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          @if (isLoadingDashboard) {
+            <div class="dashboard-loading">Chargement des indicateurs depuis la base de données...</div>
+          }
+
+          <!-- 5 KPI Cards Row -->
+          <div class="kpis-grid" [class.is-loading]="isLoadingDashboard">
+            <!-- 1. Total dossiers -->
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap icon-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Total dossiers</span>
+                <div class="kpi-value">{{ dashboard.totalDossiers | number }}</div>
+                <div class="kpi-sub kpi-success">{{ dashboard.totalDossiersChange }}</div>
+              </div>
+            </div>
+
+            <!-- 2. Dossiers en cours -->
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap icon-teal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Dossiers en cours</span>
+                <div class="kpi-value">{{ dashboard.dossiersEnCours | number }}</div>
+                <div class="kpi-sub">{{ dashboard.dossiersEnCoursPct }}</div>
+              </div>
+            </div>
+
+            <!-- 3. Dossiers finalisés -->
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap icon-emerald">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Dossiers finalisés</span>
+                <div class="kpi-value">{{ dashboard.dossiersFinalises | number }}</div>
+                <div class="kpi-sub">{{ dashboard.dossiersFinalisesChange }}</div>
+              </div>
+            </div>
+
+            <!-- 4. Taux de rejet -->
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap icon-amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Taux de rejet</span>
+                <div class="kpi-value">{{ dashboard.tauxRejet | number:'1.1-1' }} %</div>
+                <div class="kpi-sub">{{ dashboard.tauxRejetChange }}</div>
+              </div>
+            </div>
+
+            <!-- 5. Durée moyenne -->
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap icon-purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 14 10"/>
+                </svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-label">Durée moyenne</span>
+                <div class="kpi-value">{{ dashboard.dureeMoyenneJours | number:'1.1-1' }} j</div>
+                <div class="kpi-sub">{{ dashboard.dureeMoyenneChange }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-grid">
+            <!-- Left Chart: Volume mensuel de dossiers -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Volume mensuel de dossiers</h3>
+                  <span class="chart-subtitle">Dossiers créés et finalisés</span>
+                </div>
+                <span class="badge-trend-green">&bull; {{ dashboard.monthlyTrendPct }}</span>
+              </div>
+
+              <!-- SVG Line Curve Chart -->
+              <div class="chart-container">
+                <svg viewBox="0 0 600 200" class="curve-chart-svg" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#2E5A9C" stop-opacity="0.28"/>
+                      <stop offset="100%" stop-color="#2E5A9C" stop-opacity="0.01"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Horizontal Grid Lines -->
+                  <line x1="20" y1="35" x2="580" y2="35" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"/>
+                  <line x1="20" y1="80" x2="580" y2="80" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"/>
+                  <line x1="20" y1="125" x2="580" y2="125" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"/>
+                  <line x1="20" y1="165" x2="580" y2="165" stroke="#E2E8F0" stroke-width="1"/>
+
+                  <!-- Smooth Area Fill -->
+                  <path [attr.d]="getMonthlyAreaPath()" fill="url(#areaGradient)"/>
+
+                  <!-- Thick Smooth Line -->
+                  <path
+                    [attr.d]="getMonthlyCurvePath()"
+                    fill="none"
+                    stroke="#2E5A9C"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"/>
+
+                  <!-- Data Points -->
+                  @for (item of dashboard.monthlyVolume; track item.month; let i = $index) {
+                    <circle
+                      [attr.cx]="getMonthlyPointCx(i)"
+                      [attr.cy]="getMonthlyPointCy(i, item.count)"
+                      r="4.5"
+                      fill="#FFFFFF"
+                      stroke="#2E5A9C"
+                      stroke-width="3"/>
+                  }
+                </svg>
+
+                <!-- Month labels -->
+                <div class="chart-x-labels">
+                  @for (item of dashboard.monthlyVolume; track item.month) {
+                    <span class="x-label">{{ item.month }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Chart: Répartition par forme juridique -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Répartition par forme juridique</h3>
+                </div>
+                <span class="chart-count-muted">{{ dashboard.totalDossiers | number }} dossiers</span>
+              </div>
+
+              <div class="donut-content-row">
+                <!-- SVG Donut Chart -->
+                <div class="donut-chart-box">
+                  <svg viewBox="0 0 160 160" class="donut-svg">
+                    @if (dashboard.totalDossiers === 0) {
+                      <circle cx="80" cy="80" r="54" fill="none" stroke="#DDE6F5" stroke-width="26"/>
+                    } @else {
+                      @for (seg of getDonutSegments(); track seg.color + seg.dashOffset) {
+                        <circle
+                          cx="80" cy="80" r="54"
+                          fill="none"
+                          [attr.stroke]="seg.color"
+                          stroke-width="26"
+                          [attr.stroke-dasharray]="seg.dashArray"
+                          [attr.stroke-dashoffset]="seg.dashOffset"/>
+                      }
+                    }
+                  </svg>
+                  <div class="donut-center-label">
+                    <span class="donut-percent">{{ topLegalFormPct }}%</span>
+                    <span class="donut-subtext">{{ topLegalFormLabel }}</span>
+                  </div>
+                </div>
+
+                <!-- Donut Legend -->
+                <div class="donut-legend">
+                  @for (forme of dashboard.repartitionFormes; track forme.code) {
+                    <div class="legend-row">
+                      <div class="legend-left">
+                        <span class="legend-bullet" [style.background-color]="forme.color"></span>
+                        <span class="legend-name">{{ forme.label }}</span>
+                      </div>
+                      <span class="legend-pct">{{ forme.percentage }}% <span class="legend-count">({{ forme.count }})</span></span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ============================================================== -->
+      <!-- SECTION 2 : TOUS LES DOSSIERS                                  -->
+      <!-- ============================================================== -->
+      @if (activeTab === 'dossiers') {
+        <div class="dossiers-view">
+          <!-- Page Header -->
+          <div class="page-header-row">
+            <div>
+              <h1 class="page-main-title">Tous les dossiers</h1>
+              <p class="page-main-subtitle">Vue globale des démarches, toutes régions et tous organismes.</p>
+            </div>
+
+            <button type="button" class="btn btn-outline" (click)="exportDossiers()" [disabled]="isExporting">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>{{ isExporting ? 'Exportation...' : 'Exporter' }}</span>
+            </button>
+          </div>
+
+          <!-- Filters Row Card -->
+          <div class="filters-card">
+            <!-- Search bar -->
+            <div class="search-input-wrap flex-grow">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                [(ngModel)]="searchDossier"
+                (ngModelChange)="onDossierSearchChange()"
+                placeholder="Référence, entreprise ou entrepreneur..."
+                class="search-input"/>
+            </div>
+
+            <!-- Statuts -->
+            <select [(ngModel)]="filterStatus" (ngModelChange)="onDossierFilterChange()" class="filter-select">
+              <option value="Tous les statuts">Tous les statuts</option>
+              <option value="En cours">En cours</option>
+              <option value="À corriger">À corriger</option>
+              <option value="Finalisé">Finalisé</option>
+              <option value="Soumis">Soumis</option>
+              <option value="Brouillon">Brouillon</option>
+            </select>
+
+            <!-- Formes -->
+            <select [(ngModel)]="filterForme" (ngModelChange)="onDossierFilterChange()" class="filter-select">
+              <option value="Toutes les formes">Toutes les formes</option>
+              <option value="SARL">SARL</option>
+              <option value="SARL-AU">SARL-AU</option>
+              <option value="Auto-entrepreneur">Auto-entrepreneur</option>
+              <option value="SA">SA</option>
+            </select>
+
+            <!-- Régions -->
+            <select [(ngModel)]="filterRegion" (ngModelChange)="onDossierFilterChange()" class="filter-select">
+              <option value="Toutes les régions">Toutes les régions</option>
+              <option value="Casablanca-Settat">Casablanca-Settat</option>
+              <option value="Rabat-Salé-Kénitra">Rabat-Salé-Kénitra</option>
+              <option value="Tanger-Tétouan-Al Hoceïma">Tanger-Tétouan-Al Hoceïma</option>
+              <option value="Marrakech-Safi">Marrakech-Safi</option>
+              <option value="Fès-Meknès">Fès-Meknès</option>
+            </select>
+
+            <!-- Étapes -->
+            <select [(ngModel)]="filterEtape" (ngModelChange)="onDossierFilterChange()" class="filter-select">
+              <option value="Toutes les étapes">Toutes les étapes</option>
+              <option value="Contrôle CRI">Contrôle CRI</option>
+              <option value="Registre de commerce">Registre de commerce</option>
+              <option value="Publication légale">Publication légale</option>
+              <option value="Immatriculation">Immatriculation</option>
+              <option value="Certificat négatif">Certificat négatif</option>
+            </select>
+
+            <button type="button" class="btn-filter-icon" (click)="resetDossierFilters()" title="Réinitialiser filtres">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="21" x2="4" y2="14"/>
+                <line x1="4" y1="10" x2="4" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12" y2="3"/>
+                <line x1="20" y1="21" x2="20" y2="16"/>
+                <line x1="20" y1="12" x2="20" y2="3"/>
+                <line x1="1" y1="14" x2="7" y2="14"/>
+                <line x1="9" y1="8" x2="15" y2="8"/>
+                <line x1="17" y1="16" x2="23" y2="16"/>
+              </svg>
+              <span>Filtres</span>
+            </button>
+          </div>
+
+          <!-- Dossiers Table Card -->
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>RÉFÉRENCE</th>
+                    <th>ENTREPRENEUR / ENTREPRISE</th>
+                    <th>FORME</th>
+                    <th>RÉGION</th>
+                    <th>ÉTAPE ACTUELLE</th>
+                    <th class="col-status">STATUT</th>
+                    <th>CRÉATION</th>
+                    <th>MISE À JOUR</th>
+                    <th class="text-center">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (isLoadingDossiers) {
+                    <tr>
+                      <td colspan="9" class="table-loading">Chargement des dossiers depuis la base de données...</td>
+                    </tr>
+                  } @else if (dossiers.length === 0) {
+                    <tr>
+                      <td colspan="9" class="table-empty">Aucun dossier trouvé pour ces filtres.</td>
+                    </tr>
+                  } @else {
+                    @for (d of dossiers; track d.id) {
+                      <tr>
+                        <!-- Référence -->
+                        <td class="font-mono font-semibold">{{ d.reference }}</td>
+
+                        <!-- Entrepreneur / Entreprise -->
+                        <td>
+                          <div class="company-name">{{ d.companyName }}</div>
+                          <div class="entrepreneur-sub">{{ d.entrepreneurName }} &bull; {{ d.entrepreneurCinMasked }}</div>
+                        </td>
+
+                        <!-- Forme -->
+                        <td><span class="badge-form">{{ d.legalFormLabel }}</span></td>
+
+                        <!-- Région -->
+                        <td>{{ d.region }}</td>
+
+                        <!-- Étape Actuelle -->
+                        <td>{{ d.currentStep }}</td>
+
+                        <!-- Statut -->
+                        <td class="col-status">
+                          @if (d.status === 'EN_COURS') {
+                            <span class="status-badge status-en-cours">&bull; En cours</span>
+                          } @else if (d.status === 'A_CORRIGER') {
+                            <span class="status-badge status-a-corriger">&bull; À corriger</span>
+                          } @else if (d.status === 'FINALISE') {
+                            <span class="status-badge status-finalise">&bull; Finalisé</span>
+                          } @else if (d.status === 'SOUMIS') {
+                            <span class="status-badge status-soumis">&bull; Soumis</span>
+                          } @else {
+                            <span class="status-badge status-brouillon">&bull; Brouillon</span>
+                          }
+                        </td>
+
+                        <!-- Date création -->
+                        <td class="text-muted">{{ d.createdFormatted }}</td>
+
+                        <!-- Date mise à jour -->
+                        <td class="text-muted">{{ d.updatedFormatted }}</td>
+
+                        <!-- Actions -->
+                        <td class="text-center">
+                          <button
+                            type="button"
+                            class="action-icon-btn"
+                            (click)="openDossierModal(d)"
+                            title="Consulter le dossier">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Table Pagination -->
+            <div class="pagination-row">
+              <span class="pagination-info">
+                {{ dossiers.length > 0 ? (dossiersPage * dossiersPageSize + 1) : 0 }}-{{ dossiersPage * dossiersPageSize + dossiers.length }} sur {{ dossiersTotalElements }} dossiers
+              </span>
+
+              <div class="pagination-controls">
+                <button
+                  type="button"
+                  class="btn-page"
+                  [disabled]="dossiersPage === 0"
+                  (click)="changeDossierPage(-1)">
+                  Précédent
+                </button>
+                <button type="button" class="btn-page active">{{ dossiersPage + 1 }}</button>
+                <button
+                  type="button"
+                  class="btn-page"
+                  [disabled]="dossiersPage + 1 >= dossiersTotalPages"
+                  (click)="changeDossierPage(1)">
+                  Suivant
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ============================================================== -->
+      <!-- SECTION 3 : COMPTES AGENTS                                    -->
+      <!-- ============================================================== -->
+      @if (activeTab === 'agents') {
+        <div class="agents-view">
+          <!-- Page Header -->
+          <div class="page-header-row">
+            <div>
+              <h1 class="page-main-title">Comptes agents</h1>
+              <p class="page-main-subtitle">Gérez les accès des agents rattachés aux organismes partenaires.</p>
+            </div>
+
+            <button type="button" class="btn btn-primary" (click)="openCreateAgentModal()">
+              <span>Créer un agent +</span>
+            </button>
+          </div>
+
+          <!-- Filters Row Card -->
+          <div class="filters-card">
+            <!-- Search bar -->
+            <div class="search-input-wrap flex-grow">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                [(ngModel)]="searchAgent"
+                (ngModelChange)="onAgentSearchChange()"
+                placeholder="Nom ou adresse e-mail..."
+                class="search-input"/>
+            </div>
+
+            <!-- Organismes -->
+            <select [(ngModel)]="filterOrganization" (ngModelChange)="onAgentFilterChange()" class="filter-select">
+              <option value="Tous les organismes">Tous les organismes</option>
+              <option value="CRI Casablanca-Settat">CRI Casablanca-Settat</option>
+              <option value="OMPIC">OMPIC</option>
+              <option value="Tribunal de commerce">Tribunal de commerce</option>
+              <option value="DGI">DGI</option>
+              <option value="CNSS">CNSS</option>
+            </select>
+
+            <!-- Statuts -->
+            <select [(ngModel)]="filterAgentStatus" (ngModelChange)="onAgentFilterChange()" class="filter-select">
+              <option value="Tous les statuts">Tous les statuts</option>
+              <option value="Actif">Actif</option>
+              <option value="Désactivé">Désactivé</option>
+            </select>
+          </div>
+
+          <!-- Agents Table Card -->
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>AGENT</th>
+                    <th>ADRESSE E-MAIL</th>
+                    <th>ORGANISME</th>
+                    <th class="col-status">STATUT</th>
+                    <th>DERNIÈRE ACTIVITÉ</th>
+                    <th class="text-right">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (isLoadingAgents) {
+                    <tr>
+                      <td colspan="6" class="table-loading">Chargement des comptes agents...</td>
+                    </tr>
+                  } @else if (agents.length === 0) {
+                    <tr>
+                      <td colspan="6" class="table-empty">Aucun agent trouvé.</td>
+                    </tr>
+                  } @else {
+                    @for (agent of agents; track agent.id) {
+                      <tr>
+                        <!-- Agent (Avatar + Nom) -->
+                        <td>
+                          <div class="agent-profile-cell">
+                            <div class="agent-avatar-circle">{{ agent.initials }}</div>
+                            <span class="agent-fullname">{{ agent.fullName }}</span>
+                          </div>
+                        </td>
+
+                        <!-- Adresse email -->
+                        <td class="font-mono text-muted">{{ agent.email }}</td>
+
+                        <!-- Organisme -->
+                        <td>{{ agent.organization }}</td>
+
+                        <!-- Statut -->
+                        <td class="col-status">
+                          @if (agent.active) {
+                            <span class="status-badge status-finalise">&bull; Actif</span>
+                          } @else {
+                            <span class="status-badge status-brouillon">&bull; Désactivé</span>
+                          }
+                        </td>
+
+                        <!-- Dernière activité -->
+                        <td class="text-muted">{{ agent.lastActivityFormatted }}</td>
+
+                        <!-- Actions -->
+                        <td class="text-right">
+                          <div class="agent-actions-row">
+                            <button
+                              type="button"
+                              class="text-action-btn"
+                              (click)="openAgentDetails(agent)"
+                              title="Modifier les informations">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                              </svg>
+                              <span>Modifier</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              class="text-action-btn"
+                              (click)="openAgentDetails(agent)"
+                              title="Consulter l'agent">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                              </svg>
+                              <span>Voir</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              class="text-action-btn action-danger"
+                              (click)="toggleAgentStatus(agent)"
+                              [title]="agent.active ? 'Désactiver le compte' : 'Activer le compte'">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                              </svg>
+                              <span>{{ agent.active ? 'Désactiver' : 'Activer' }}</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Other sections placeholder -->
+      @if (activeTab === 'organismes' || activeTab === 'workflows' || activeTab === 'exports' || activeTab === 'profile') {
+        <div class="coming-soon-card">
+          <div class="coming-icon">⚙️</div>
+          <h2>Module d'administration</h2>
+          <p>Le module « {{ activeTab | uppercase }} » est supervisé par l'Administration centrale de Foundly.</p>
+          <button type="button" class="btn btn-primary" (click)="setTab('dashboard')">Retour au tableau de bord</button>
+        </div>
+      }
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL : CRÉER UN AGENT (Formulaire Enregistré en BDD)           -->
+<!-- ============================================================== -->
+@if (isCreateAgentModalOpen) {
+  <div class="modal-backdrop" (click)="closeCreateAgentModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Créer un compte agent</h3>
+          <p class="modal-subtitle">L'agent sera rattaché à son organisme pour traiter les dossiers soumis.</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeCreateAgentModal()">&times;</button>
+      </div>
+
+      <form (ngSubmit)="submitCreateAgent()" class="modal-body">
+        @if (createAgentError) {
+          <div class="form-error-alert">{{ createAgentError }}</div>
+        }
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Prénom *</label>
+            <input type="text" [(ngModel)]="newAgent.firstName" name="firstName" required class="form-input" placeholder="ex: Nadia"/>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Nom *</label>
+            <input type="text" [(ngModel)]="newAgent.lastName" name="lastName" required class="form-input" placeholder="ex: El Fassi"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Adresse e-mail professionnelle *</label>
+          <input type="email" [(ngModel)]="newAgent.email" name="email" required class="form-input" placeholder="ex: nadia.elfassi@ompic.ma"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mot de passe temporaire * (min. 8 caractères)</label>
+          <input type="password" [(ngModel)]="newAgent.password" name="password" required class="form-input" placeholder="••••••••••••"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Organisme partenaire *</label>
+          <select [(ngModel)]="newAgent.organization" name="organization" required class="form-select">
+            <option value="CRI Casablanca-Settat">CRI Casablanca-Settat</option>
+            <option value="OMPIC">OMPIC (Office Marocain de la Propriété Industrielle)</option>
+            <option value="Tribunal de commerce">Tribunal de commerce</option>
+            <option value="DGI">DGI (Direction Générale des Impôts)</option>
+            <option value="CNSS">CNSS (Caisse Nationale de Sécurité Sociale)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Numéro de CIN</label>
+            <input type="text" [(ngModel)]="newAgent.cin" name="cin" class="form-input" placeholder="ex: BE567890"/>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Téléphone</label>
+            <input type="tel" [(ngModel)]="newAgent.phone" name="phone" class="form-input" placeholder="ex: 0661234567"/>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeCreateAgentModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="isSubmittingAgent">
+            {{ isSubmittingAgent ? 'Enregistrement...' : 'Enregistrer l\'agent' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODAL : DÉTAIL D'UN DOSSIER                                    -->
+<!-- ============================================================== -->
+@if (selectedDossier) {
+  <div class="modal-backdrop" (click)="closeDossierModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span class="badge-form">{{ selectedDossier.legalFormLabel }}</span>
+          <h3 class="modal-title">{{ selectedDossier.companyName }}</h3>
+          <p class="modal-subtitle">Référence nationale : <strong>{{ selectedDossier.reference }}</strong></p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeDossierModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Demandeur</span>
+            <span class="detail-value">{{ selectedDossier.entrepreneurName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">CIN</span>
+            <span class="detail-value font-mono">{{ selectedDossier.entrepreneurCinMasked }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Région d'immatriculation</span>
+            <span class="detail-value">{{ selectedDossier.region }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Étape en cours</span>
+            <span class="detail-value font-semibold">{{ selectedDossier.currentStep }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Statut du dossier</span>
+            <span class="detail-value">{{ selectedDossier.statusLabel }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Date de création</span>
+            <span class="detail-value">{{ selectedDossier.createdFormatted }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="closeDossierModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODAL : DÉTAIL / MODIFICATION AGENT                            -->
+<!-- ============================================================== -->
+@if (selectedAgent) {
+  <div class="modal-backdrop" (click)="closeAgentDetails()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">{{ selectedAgent.fullName }}</h3>
+          <p class="modal-subtitle">{{ selectedAgent.organization }}</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeAgentDetails()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Adresse e-mail</span>
+            <span class="detail-value font-mono">{{ selectedAgent.email }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Statut du compte</span>
+            <span class="detail-value">{{ selectedAgent.active ? 'Actif' : 'Désactivé' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Dernière activité enregistrée</span>
+            <span class="detail-value">{{ selectedAgent.lastActivityFormatted }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline"
+          (click)="toggleAgentStatus(selectedAgent); closeAgentDetails()">
+          {{ selectedAgent.active ? 'Désactiver le compte' : 'Activer le compte' }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="closeAgentDetails()">Fermer</button>
+      </div>
+    </div>
+  </div>
+}
