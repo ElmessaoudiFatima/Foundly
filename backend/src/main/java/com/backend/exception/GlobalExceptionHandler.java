@@ -59,6 +59,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    @ExceptionHandler(OrganizationCodeAlreadyUsedException.class)
+    public ResponseEntity<ApiError> handleOrgCodeAlreadyUsed(OrganizationCodeAlreadyUsedException ex,
+                                                             HttpServletRequest request) {
+        ApiError error = new ApiError(409, "ORGANIZATION_CODE_ALREADY_USED",
+                ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
                                                         HttpServletRequest request) {
@@ -85,6 +93,14 @@ public class GlobalExceptionHandler {
         ApiError error = new ApiError(401, "INVALID_REFRESH_TOKEN",
                 ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(OrganizationNotFoundException.class)
+    public ResponseEntity<ApiError> handleOrganizationNotFound(OrganizationNotFoundException ex,
+                                                               HttpServletRequest request) {
+        ApiError error = new ApiError(404, "ORGANIZATION_NOT_FOUND",
+                ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
     @ExceptionHandler(NoSuchElementException.class)

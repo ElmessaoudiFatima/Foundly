@@ -1,11 +1,13 @@
 package com.backend.config;
 
 import com.backend.entity.Dossier;
+import com.backend.entity.Organisme;
 import com.backend.entity.Utilisateur;
 import com.backend.enums.DossierStatus;
 import com.backend.enums.LegalFormCode;
 import com.backend.enums.RoleUtilisateur;
 import com.backend.repository.DossierRepository;
+import com.backend.repository.OrganismeRepository;
 import com.backend.repository.UtilisateurRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -23,9 +25,30 @@ public class DataInitializer {
     public CommandLineRunner initDatabase(
             UtilisateurRepository utilisateurRepository,
             DossierRepository dossierRepository,
+            OrganismeRepository organismeRepository,
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
+            // 0. Seed organismes partenaires (idempotent : insertion si code absent)
+            seedOrganismeIfMissing(organismeRepository, "OMPIC",
+                    "Office Marocain de la Propriété Industrielle et Commerciale",
+                    "Délivre le certificat négatif attestant la disponibilité du nom commercial.");
+            seedOrganismeIfMissing(organismeRepository, "CRI",
+                    "Centres Régionaux d'Investissement",
+                    "Guichet unique régional qui réceptionne et traite les dossiers de création d'entreprise.");
+            seedOrganismeIfMissing(organismeRepository, "TRIBUNAL",
+                    "Tribunaux de commerce",
+                    "Prononce l'immatriculation de la société au Registre du Commerce et des Sociétés.");
+            seedOrganismeIfMissing(organismeRepository, "DGI",
+                    "Direction Générale des Impôts",
+                    "Attribue l'Identifiant Fiscal (IF) et la patente nécessaires à l'exercice de l'activité.");
+            seedOrganismeIfMissing(organismeRepository, "CNSS",
+                    "Caisse Nationale de Sécurité Sociale",
+                    "Enregistre l'entreprise comme employeur pour la couverture sociale des salariés.");
+            seedOrganismeIfMissing(organismeRepository, "JOURNAL",
+                    "Journaux d'annonces légales",
+                    "Publie l'avis de constitution de la société conformément aux obligations légales.");
+
             // 1. Administrateur principal (Samira Benjelloun - Superviseure Foundly)
             if (!utilisateurRepository.existsByEmail("admin@foundly.ma")) {
                 Utilisateur admin = new Utilisateur();
@@ -166,5 +189,20 @@ public class DataInitializer {
         d.setCreatedAt(Instant.now().minus(daysAgo, ChronoUnit.DAYS));
         d.setUpdatedAt(Instant.now().minus(Math.max(1, daysAgo - 4), ChronoUnit.DAYS));
         repo.save(d);
+    }
+
+    private void seedOrganismeIfMissing(
+            OrganismeRepository repo,
+            String code,
+            String nom,
+            String description
+    ) {
+        if (!repo.existsByCode(code)) {
+            Organisme o = new Organisme();
+            o.setCode(code);
+            o.setNom(nom);
+            o.setDescription(description);
+            repo.save(o);
+        }
     }
 }

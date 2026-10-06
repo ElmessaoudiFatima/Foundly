@@ -632,6 +632,47 @@ paths:
               schema:
                 type: array
                 items: {$ref: '#/components/schemas/Organization'}
+    post:
+      tags: [Administration]
+      summary: Créer un organisme 
+      description: Le code (sigle) est unique et n'est plus modifiable après la création.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OrganizationCreateRequest'}
+      responses:
+        '201':
+          description: Organisme créé
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Organization'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /admin/organizations/{organizationCode}:
+    patch:
+      tags: [Administration]
+      summary: Configurer un organisme (nom et description)
+      parameters:
+        - name: organizationCode
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OrganizationUpdateRequest'}
+      responses:
+        '200':
+          description: Organisme mis à jour
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Organization'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
   /admin/agents:
     get:
       tags: [Administration]
@@ -812,8 +853,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: |
-        JWT d'accès envoyé sous la forme `Authorization: Bearer <token>`.
+      description: "JWT d'accès envoyé sous la forme `Authorization: Bearer <token>`."
   parameters:
     DossierId:
       name: dossierId
@@ -1211,10 +1251,27 @@ components:
       allOf:
         - {$ref: '#/components/schemas/OrganizationReference'}
         - type: object
-          required: [description, activeAgentCount]
+          required: [description, activeAgentCount, managedSteps]
           properties:
             description: {type: string}
             activeAgentCount: {type: integer, minimum: 0}
+            managedSteps:
+              type: array
+              items: {type: string}
+              description: Libellés des étapes du workflow actif rattachées à l'organisme (liste vide si aucune)
+    OrganizationCreateRequest:
+      type: object
+      required: [name, code, description]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 150}
+        code: {type: string, pattern: '^[A-Z][A-Z0-9_]{1,19}$', example: ANCFCC}
+        description: {type: string, minLength: 1, maxLength: 500}
+    OrganizationUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: {type: string, minLength: 1, maxLength: 150}
+        description: {type: string, minLength: 1, maxLength: 500}
     UserReference:
       type: object
       nullable: true
