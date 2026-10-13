@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { AdminService } from '../../services/admin.service';
 import {
@@ -21,7 +21,7 @@ type AdminTab = 'dashboard' | 'dossiers' | 'agents' | 'organismes' | 'workflows'
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
@@ -117,6 +117,11 @@ export class AdminComponent implements OnInit {
   configuringOrganisme: OrganismeItem | null = null;
   configOrganismeForm: OrganismeUpdatePayload = { name: '', description: '' };
 
+  // Panneau agents inline dans la section organismes
+  selectedOrgCode: string | null = null;
+  orgAgents: AgentAdminItem[] = [];
+  isLoadingOrgAgents = false;
+
   ngOnInit(): void {
     this.loadDashboard();
     this.loadDossiers();
@@ -176,6 +181,9 @@ export class AdminComponent implements OnInit {
     } else if (tab === 'dossiers') {
       this.loadDossiers();
     } else if (tab === 'agents') {
+      if (this.organismes.length === 0) {
+        this.loadOrganismes();
+      }
       this.loadAgents();
     } else if (tab === 'organismes') {
       this.loadOrganismes();
@@ -532,6 +540,38 @@ export class AdminComponent implements OnInit {
         this.configOrganismeError = typeof msg === 'string' ? msg : 'Erreur lors de la mise à jour.';
       }
     });
+  }
+
+  /** Affiche les agents d'un organisme dans un panneau inline (reste sur l'onglet organismes). */
+  viewOrgAgents(orgCode: string): void {
+    // Toggle : fermer si déjà ouvert
+    if (this.selectedOrgCode === orgCode) {
+      this.selectedOrgCode = null;
+      this.orgAgents = [];
+      return;
+    }
+    this.selectedOrgCode = orgCode;
+    this.orgAgents = [];
+    this.isLoadingOrgAgents = true;
+    this.adminService.getAgents('', orgCode, null, 0, 100).subscribe({
+      next: (res) => {
+        this.orgAgents = res.content ?? [];
+        this.isLoadingOrgAgents = false;
+      },
+      error: () => {
+        this.isLoadingOrgAgents = false;
+        this.showToast('Impossible de charger les agents de cet organisme.');
+      }
+    });
+  }
+
+  closeOrgAgentsPanel(): void {
+    this.selectedOrgCode = null;
+    this.orgAgents = [];
+  }
+
+  getSelectedOrg(): OrganismeItem | null {
+    return this.organismes.find(o => o.code === this.selectedOrgCode) ?? null;
   }
 
   getOrganismeInitials(org: OrganismeItem): string {

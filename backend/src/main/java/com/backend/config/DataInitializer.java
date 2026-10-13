@@ -65,21 +65,24 @@ public class DataInitializer {
                 utilisateurRepository.save(admin);
             }
 
-            // 2. Agents des organismes
+            // 2. Agents des organismes (organisme = code pour matcher la table Organisme)
             seedAgentIfMissing(utilisateurRepository, passwordEncoder,
-                    "Khadija", "Berrada", "khadija.berrada@cri.ma", "CRI Casablanca-Settat", true, Instant.now().minus(30, ChronoUnit.MINUTES));
+                    "Khadija", "Berrada", "khadija.berrada@cri.ma", "CRI", true, Instant.now().minus(30, ChronoUnit.MINUTES));
 
             seedAgentIfMissing(utilisateurRepository, passwordEncoder,
                     "Nadia", "El Fassi", "nadia.elfassi@ompic.ma", "OMPIC", true, Instant.now().minus(2, ChronoUnit.HOURS));
 
             seedAgentIfMissing(utilisateurRepository, passwordEncoder,
-                    "Youssef", "Karim", "y.karim@tribunal.ma", "Tribunal de commerce", true, Instant.now().minus(1, ChronoUnit.DAYS));
+                    "Youssef", "Karim", "y.karim@tribunal.ma", "TRIBUNAL", true, Instant.now().minus(1, ChronoUnit.DAYS));
 
             seedAgentIfMissing(utilisateurRepository, passwordEncoder,
                     "Leïla", "Amrani", "l.amrani@dgi.gov.ma", "DGI", false, Instant.now().minus(15, ChronoUnit.DAYS));
 
             seedAgentIfMissing(utilisateurRepository, passwordEncoder,
                     "Karim", "Bennis", "k.bennis@cnss.ma", "CNSS", true, Instant.now().minus(3, ChronoUnit.HOURS));
+
+            // Migration : corriger les agents existants dont le champ organisme n'est pas encore un code
+            migrateAgentOrganismeToCode(utilisateurRepository);
 
             // 3. Entrepreneurs et dossiers initiaux
             if (dossierRepository.count() == 0) {
@@ -139,6 +142,30 @@ public class DataInitializer {
             agent.setLastActivityAt(lastActivity);
             repo.save(agent);
         }
+    }
+
+    /**
+     * Corrige les valeurs d'organisme stockées en BDD qui utilisaient un nom libre
+     * au lieu du code d'organisme attendu par la requête de comptage activeAgentCount.
+     */
+    private void migrateAgentOrganismeToCode(UtilisateurRepository repo) {
+        java.util.Map<String, String> mapping = new java.util.LinkedHashMap<>();
+        mapping.put("CRI Casablanca-Settat", "CRI");
+        mapping.put("Tribunal de commerce",  "TRIBUNAL");
+        mapping.put("Tribunaux de commerce", "TRIBUNAL");
+        mapping.put("Caisse Nationale de Sécurité Sociale", "CNSS");
+        mapping.put("Office Marocain de la Propriété Industrielle et Commerciale", "OMPIC");
+        mapping.put("Direction Générale des Impôts", "DGI");
+
+        mapping.forEach((oldValue, newCode) ->
+                repo.findAll().stream()
+                        .filter(u -> u.getRole() == RoleUtilisateur.AGENT
+                                && oldValue.equals(u.getOrganisme()))
+                        .forEach(u -> {
+                            u.setOrganisme(newCode);
+                            repo.save(u);
+                        })
+        );
     }
 
     private Utilisateur seedEntrepreneur(

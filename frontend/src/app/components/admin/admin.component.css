@@ -1461,3 +1461,314 @@
   line-height: 1.5;
 }
 
+/* ===================== ORG AGENTS INLINE PANEL ===================== */
+.org-card--selected {
+  border-color: var(--accent, #2E5A9C);
+  box-shadow: 0 0 0 2px rgba(46,90,156,0.15), 0 4px 16px rgba(30,58,138,0.10);
+}
+
+.org-link-btn--active {
+  color: var(--accent, #2E5A9C) !important;
+  font-weight: 600;
+  text-decoration-color: var(--accent, #2E5A9C);
+}
+
+.org-agents-panel {
+  margin-top: 24px;
+  background: #fff;
+  border: 1.5px solid var(--border, #DDE6F5);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.org-agents-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-section, #F0F5FF);
+  border-bottom: 1px solid var(--border, #DDE6F5);
+}
+
+.org-agents-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.org-agents-panel-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--navy, #1F3864);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-agents-panel-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy, #1F3864);
+}
+
+.org-agents-panel-sub {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.org-agents-panel-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+.org-agents-panel-close:hover {
+  background: #E2E8F0;
+  color: var(--navy, #1F3864);
+}
+
+.org-agents-loading {
+  padding: 32px;
+  text-align: center;
+  color: #94A3B8;
+  font-size: 13px;
+}
+
+.org-agents-empty {
+  padding: 40px;
+  text-align: center;
+  color: #94A3B8;
+}
+.org-agents-empty span { font-size: 32px; display: block; margin-bottom: 8px; }
+.org-agents-empty p { margin: 0; font-size: 13px; }
+
+.org-agents-list { padding: 8px 0; }
+
+.org-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background 0.12s;
+}
+.org-agent-row:last-child { border-bottom: none; }
+.org-agent-row:hover { background: #F8FAFF; }
+
+.org-agent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2E5A9C, #1F3864);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-agent-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.org-agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy, #1F3864);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-agent-email {
+  font-size: 11px;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.org-agent-status--active  { background: #DCFCE7; color: #16A34A; }
+.org-agent-status--inactive { background: #FEE2E2; color: #DC2626; }
+
+.org-agent-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.org-agent-date {
+  font-size: 11px;
+  color: #94A3B8;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ===================== MODAL AGENTS ORGANISME ===================== */
+.org-agents-modal {
+  max-width: 620px !important;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.org-agents-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border, #DDE6F5);
+  flex-shrink: 0;
+}
+
+.org-agents-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.org-agents-modal-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--navy, #1F3864), var(--accent, #2E5A9C));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-agents-modal-h2 {
+  margin: 0 0 2px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy, #1F3864);
+}
+
+.org-agents-modal-org {
+  margin: 0;
+  font-size: 12px;
+  color: #64748B;
+}
+
+.org-agents-modal-bar {
+  padding: 10px 24px;
+  background: var(--bg-section, #F0F5FF);
+  border-bottom: 1px solid var(--border, #DDE6F5);
+  flex-shrink: 0;
+}
+
+.org-agents-modal-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748B;
+}
+
+.org-agents-modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.org-agents-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: #94A3B8;
+  font-size: 13px;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+  color: var(--accent, #2E5A9C);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.org-agents-modal-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: #94A3B8;
+}
+
+.org-agents-modal-empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.org-agents-modal-empty h3 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.org-agents-modal-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.org-agents-modal-list {
+  padding: 8px 0;
+}
+
+.org-agents-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background 0.12s;
+}
+.org-agents-modal-row:last-child { border-bottom: none; }
+.org-agents-modal-row:hover { background: #F8FAFF; }
+
+.org-agents-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}

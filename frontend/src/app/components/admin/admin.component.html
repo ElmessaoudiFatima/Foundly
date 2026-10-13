@@ -689,11 +689,9 @@
             <!-- Organismes -->
             <select [(ngModel)]="filterOrganization" (ngModelChange)="onAgentFilterChange()" class="filter-select">
               <option value="Tous les organismes">Tous les organismes</option>
-              <option value="CRI Casablanca-Settat">CRI Casablanca-Settat</option>
-              <option value="OMPIC">OMPIC</option>
-              <option value="Tribunal de commerce">Tribunal de commerce</option>
-              <option value="DGI">DGI</option>
-              <option value="CNSS">CNSS</option>
+              @for (org of organismes; track org.code) {
+                <option [value]="org.code">{{ org.name }}</option>
+              }
             </select>
 
             <!-- Statuts -->
@@ -860,21 +858,11 @@
                     <span class="org-stat-label">Agents actifs</span>
                     <span class="org-stat-value">{{ org.activeAgentCount }}</span>
                   </div>
-                  <div class="org-stat-row">
-                    <span class="org-stat-label">Étapes gérées</span>
-                    <span class="org-stat-value org-stat-steps">
-                      @if (org.managedSteps && org.managedSteps.length > 0) {
-                        {{ org.managedSteps.join(', ') }}
-                      } @else {
-                        <span class="org-stat-empty">—</span>
-                      }
-                    </span>
-                  </div>
                 </div>
 
                 <!-- Actions -->
                 <div class="org-card-actions">
-                  <button class="org-link-btn" (click)="setTab('agents'); filterOrganization = org.code">
+                  <button class="org-link-btn" (click)="viewOrgAgents(org.code)">
                     Voir les agents
                   </button>
                   <button class="org-configure-btn" [id]="'btn-configure-' + org.code" (click)="openConfigureOrganisme(org)">
@@ -902,6 +890,79 @@
     </main>
   </div>
 </div>
+
+<!-- ============================================================== -->
+<!-- MODAL : AGENTS D'UN ORGANISME                                  -->
+<!-- ============================================================== -->
+@if (selectedOrgCode) {
+  <div class="modal-backdrop" (click)="closeOrgAgentsPanel()">
+    <div class="modal-card org-agents-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="org-agents-modal-header">
+        <div class="org-agents-modal-title">
+          <div class="org-agents-modal-badge">{{ selectedOrgCode }}</div>
+          <div>
+            <h2 class="org-agents-modal-h2">Agents rattachés</h2>
+            <p class="org-agents-modal-org">{{ getSelectedOrg()?.name }}</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="closeOrgAgentsPanel()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Counter bar -->
+      <div class="org-agents-modal-bar">
+        <span class="org-agents-modal-count">
+          {{ orgAgents.length }} agent(s) rattaché(s) &bull; {{ getSelectedOrg()?.activeAgentCount }} actif(s)
+        </span>
+      </div>
+
+      <!-- Body -->
+      <div class="org-agents-modal-body">
+        @if (isLoadingOrgAgents) {
+          <div class="org-agents-loading">
+            <svg class="spin-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            <p>Chargement des agents...</p>
+          </div>
+        } @else if (orgAgents.length === 0) {
+          <div class="org-agents-modal-empty">
+            <div class="org-agents-modal-empty-icon">👥</div>
+            <h3>Aucun agent rattaché</h3>
+            <p>Cet organisme ne compte aucun agent enregistré pour le moment.</p>
+          </div>
+        } @else {
+          <div class="org-agents-modal-list">
+            @for (agent of orgAgents; track agent.id) {
+              <div class="org-agents-modal-row">
+                <div class="org-agent-avatar">{{ agent.initials }}</div>
+                <div class="org-agent-info">
+                  <span class="org-agent-name">{{ agent.fullName }}</span>
+                  <span class="org-agent-email">{{ agent.email }}</span>
+                </div>
+                <div class="org-agents-modal-meta">
+                  <span class="org-agent-status"
+                        [class.org-agent-status--active]="agent.active"
+                        [class.org-agent-status--inactive]="!agent.active">
+                    <span class="org-agent-status-dot"></span>
+                    {{ agent.active ? 'Actif' : 'Désactivé' }}
+                  </span>
+                  <span class="org-agent-date">{{ agent.lastActivityFormatted }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  </div>
+}
 
 <!-- ============================================================== -->
 <!-- MODAL : CRÉER UN AGENT (Formulaire Enregistré en BDD)           -->
