@@ -30,7 +30,11 @@ public interface AdminService {
 
     AgentAdminResponse createAgent(AgentCreateAdminRequest request);
 
-    AgentAdminResponse updateAgentStatus(UUID agentId, boolean active);
+    AgentAdminResponse updateAgentStatus(UUID agentId, boolean active, String reason);
+
+    default AgentAdminResponse updateAgentStatus(UUID agentId, boolean active) {
+        return updateAgentStatus(agentId, active, null);
+    }
 
     byte[] exportDossiersCsv(
             String search,

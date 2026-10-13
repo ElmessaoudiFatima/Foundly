@@ -85,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(InvalidCredentialsException::new);  // email inconnu → 401
 
         if (!u.isActif()) {
-            throw new InvalidCredentialsException();  // compte inactif → 401 générique
+            throw new InvalidCredentialsException("Ce compte a été désactivé par l'administration. La connexion est impossible.");
         }
 
         if (!passwordEncoder.matches(req.password(), u.getPassword())) {

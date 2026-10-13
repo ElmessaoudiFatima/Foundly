@@ -90,15 +90,18 @@ export class AdminComponent implements OnInit {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
     organization: 'CRI Casablanca-Settat',
     phone: '',
     cin: ''
   };
   createAgentError = '';
 
-  // View agent modal
-  selectedAgent: AgentAdminItem | null = null;
+  // Deactivate agent modal with motif
+  isDeactivateModalOpen = false;
+  agentToDeactivate: AgentAdminItem | null = null;
+  deactivationReason = '';
+  deactivationError = '';
+  isSubmittingDeactivation = false;
 
   // ===================== ORGANISMES =====================
   organismes: OrganismeItem[] = [];
@@ -364,7 +367,6 @@ export class AdminComponent implements OnInit {
       firstName: '',
       lastName: '',
       email: '',
-      password: '',
       organization: 'CRI Casablanca-Settat',
       phone: '',
       cin: ''
@@ -387,10 +389,6 @@ export class AdminComponent implements OnInit {
       this.createAgentError = 'L\'adresse e-mail est requise.';
       return;
     }
-    if (!this.newAgent.password || this.newAgent.password.length < 8) {
-      this.createAgentError = 'Le mot de passe doit comporter au moins 8 caractères.';
-      return;
-    }
 
     this.isSubmittingAgent = true;
     this.createAgentError = '';
@@ -399,7 +397,7 @@ export class AdminComponent implements OnInit {
       next: (created) => {
         this.isSubmittingAgent = false;
         this.isCreateAgentModalOpen = false;
-        this.showToast(`Compte agent « ${created.fullName} » créé avec succès et enregistré en base de données.`);
+        this.showToast(`Compte agent « ${created.fullName} » créé avec succès ! Un e-mail contenant ses identifiants et son mot de passe automatique lui a été envoyé.`);
         this.loadAgents();
       },
       error: (err) => {
@@ -413,37 +411,66 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  toggleAgentStatus(agent: AgentAdminItem): void {
+  openDeactivateModal(agent: AgentAdminItem): void {
+    this.agentToDeactivate = agent;
+    this.deactivationReason = '';
+    this.deactivationError = '';
+    this.isDeactivateModalOpen = true;
+  }
+
+  closeDeactivateModal(): void {
+    this.isDeactivateModalOpen = false;
+    this.agentToDeactivate = null;
+    this.deactivationReason = '';
+    this.deactivationError = '';
+  }
+
+  confirmDeactivation(): void {
+    if (!this.agentToDeactivate?.id) {
+      this.deactivationError = 'Identifiant agent manquant.';
+      return;
+    }
+    if (!this.deactivationReason.trim()) {
+      this.deactivationError = 'Le motif de désactivation est obligatoire.';
+      return;
+    }
+
+    this.isSubmittingDeactivation = true;
+    this.deactivationError = '';
+
+    const agentName = this.agentToDeactivate.fullName;
+    this.adminService.updateAgentStatus(this.agentToDeactivate.id, false, this.deactivationReason.trim()).subscribe({
+      next: () => {
+        this.isSubmittingDeactivation = false;
+        this.closeDeactivateModal();
+        this.showToast(`Compte de l'agent ${agentName} désactivé avec succès. Un e-mail avec le motif officiel lui a été envoyé.`);
+        this.loadAgents();
+      },
+      error: (err) => {
+        this.isSubmittingDeactivation = false;
+        const msg = err?.error?.message || err?.message || 'Erreur lors de la désactivation du compte agent.';
+        this.deactivationError = typeof msg === 'string' ? msg : 'Erreur lors de la désactivation.';
+      }
+    });
+  }
+
+  activateAgent(agent: AgentAdminItem): void {
     if (!agent?.id) {
       this.showToast('Identifiant agent manquant.');
       return;
     }
 
-    const newStatus = !agent.active;
-    const actionLabel = newStatus ? 'activé' : 'désactivé';
-
-    this.adminService.updateAgentStatus(agent.id, newStatus).subscribe({
+    this.adminService.updateAgentStatus(agent.id, true).subscribe({
       next: (updated) => {
         agent.active = updated.active;
-        if (this.selectedAgent?.id === agent.id) {
-          this.selectedAgent = { ...this.selectedAgent, active: updated.active };
-        }
-        this.showToast(`Compte de l'agent ${agent.fullName} ${actionLabel} avec succès.`);
+        this.showToast(`Compte de l'agent ${agent.fullName} réactivé avec succès.`);
         this.loadAgents();
       },
       error: (err) => {
-        const msg = err?.error?.message || err?.message || 'Erreur lors du changement de statut de l\'agent.';
-        this.showToast(typeof msg === 'string' ? msg : 'Erreur lors du changement de statut de l\'agent.');
+        const msg = err?.error?.message || err?.message || 'Erreur lors de la réactivation de l\'agent.';
+        this.showToast(typeof msg === 'string' ? msg : 'Erreur lors de la réactivation de l\'agent.');
       }
     });
-  }
-
-  openAgentDetails(agent: AgentAdminItem): void {
-    this.selectedAgent = agent;
-  }
-
-  closeAgentDetails(): void {
-    this.selectedAgent = null;
   }
 
   logout(): void {

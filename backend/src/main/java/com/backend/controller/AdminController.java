@@ -108,7 +108,7 @@ public class AdminController {
             @PathVariable UUID id,
             @Valid @RequestBody AgentUpdateStatusRequest request
     ) {
-        AgentAdminResponse res = adminService.updateAgentStatus(id, request.active());
+        AgentAdminResponse res = adminService.updateAgentStatus(id, request.active(), request.reason());
         return ResponseEntity.ok(res);
     }
 }

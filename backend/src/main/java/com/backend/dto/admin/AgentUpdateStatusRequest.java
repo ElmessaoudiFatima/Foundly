@@ -4,5 +4,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record AgentUpdateStatusRequest(
         @NotNull(message = "Le statut actif est obligatoire")
-        Boolean active
+        Boolean active,
+
+        String reason
 ) {}
