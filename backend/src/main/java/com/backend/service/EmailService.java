@@ -21,4 +21,10 @@ public interface EmailService {
      * @param reason        Motif / justification de la désactivation
      */
     void sendAgentDeactivationEmail(String toEmail, String agentFullName, String reason);
+
+    /**
+     * Envoie un e-mail de notification de suivi de dossier à un entrepreneur.
+     */
+    void sendDossierNotificationEmail(String toEmail, String recipientName, String title, String message, String dossierReference, String actionUrl);
 }
+

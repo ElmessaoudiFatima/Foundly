@@ -1,0 +1,13 @@
+package com.backend.enums;
+
+public enum AuditEventAction {
+    DOSSIER_CREE,
+    DOSSIER_SOUMIS,
+    DOCUMENT_AJOUTE,
+    DOCUMENT_SUPPRIME,
+    PAIEMENT_CONFIRME,
+    ETAPE_VALIDEE,
+    ETAPE_REJETEE,
+    DOSSIER_CORRIGE,
+    DOSSIER_FINALISE
+}

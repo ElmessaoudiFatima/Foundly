@@ -244,6 +244,54 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(smtpConfigured ? "SIMULATION APRES ERREUR SMTP" : "DEV/SIMULATION", toEmail, subject, contextLog));
     }
 
+    @Override
+    public void sendDossierNotificationEmail(String toEmail, String recipientName, String title, String message, String dossierReference, String actionUrl) {
+        String url = actionUrl != null ? actionUrl : frontendUrl.replaceAll("/+$", "") + "/dashboard";
+        String subject = "Foundly — " + title + " (" + dossierReference + ")";
+
+        String htmlContent = """
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+              <meta charset="UTF-8">
+              <style>
+                body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #1e293b; }
+                .email-container { max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+                .email-header { background: linear-gradient(135deg, #1F3864 0%%, #2E5A9C 100%%); padding: 30px; text-align: center; color: #ffffff; }
+                .email-header h1 { margin: 0 0 6px 0; font-size: 22px; font-weight: 700; }
+                .email-body { padding: 30px; }
+                .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+                .info-text { font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 20px; }
+                .dossier-pill { display: inline-block; background-color: #EBF3FC; color: #1F3864; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-family: monospace; font-size: 13px; margin-bottom: 15px; }
+                .btn-cta { display: inline-block; background-color: #1F3864; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; margin-top: 15px; }
+                .email-footer { padding: 20px; text-align: center; background-color: #f8fafc; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+              </style>
+            </head>
+            <body>
+              <div class="email-container">
+                <div class="email-header">
+                  <h1>Plateforme Foundly</h1>
+                  <p>Guichet Unique de Création d'Entreprise au Maroc</p>
+                </div>
+                <div class="email-body">
+                  <div class="greeting">Bonjour %s,</div>
+                  <div class="dossier-pill">Dossier : %s</div>
+                  <p class="info-text">%s</p>
+                  <div style="text-align: center; margin-top: 25px;">
+                    <a href="%s" class="btn-cta">Consulter mon dossier</a>
+                  </div>
+                </div>
+                <div class="email-footer">
+                  Foundly © 2026 — Plateforme de modernisation administrative du Royaume du Maroc.
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(escapeHtml(recipientName), escapeHtml(dossierReference), escapeHtml(message), url);
+
+        sendHtmlEmail(toEmail, subject, htmlContent, "Notification dossier: " + dossierReference);
+    }
+
     private String escapeHtml(String text) {
         if (text == null) return "";
         return text.replace("&", "&amp;")
@@ -253,3 +301,4 @@ public class EmailServiceImpl implements EmailService {
                 .replace("'", "&#39;");
     }
 }
+

@@ -103,6 +103,48 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(DossierNotFoundException.class)
+    public ResponseEntity<ApiError> handleDossierNotFound(DossierNotFoundException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(404, "DOSSIER_NOT_FOUND", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(StepNotFoundException.class)
+    public ResponseEntity<ApiError> handleStepNotFound(StepNotFoundException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(404, "STEP_NOT_FOUND", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentNotFoundException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(404, "PAYMENT_NOT_FOUND", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(UnauthorizedDossierAccessException.class)
+    public ResponseEntity<ApiError> handleUnauthorizedDossierAccess(UnauthorizedDossierAccessException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(403, "FORBIDDEN_DOSSIER_ACCESS", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(InvalidDossierStateException.class)
+    public ResponseEntity<ApiError> handleInvalidDossierState(InvalidDossierStateException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(400, "INVALID_DOSSIER_STATE", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<ApiError> handleInvalidFile(InvalidFileException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(400, "INVALID_FILE", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(IncompleteChecklistException.class)
+    public ResponseEntity<ApiError> handleIncompleteChecklist(IncompleteChecklistException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(422, "INCOMPLETE_CHECKLIST", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ApiError> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
         ApiError error = new ApiError(404, "NOT_FOUND",

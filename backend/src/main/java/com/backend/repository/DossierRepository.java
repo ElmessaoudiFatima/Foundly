@@ -5,7 +5,6 @@ import com.backend.enums.DossierStatus;
 import com.backend.enums.LegalFormCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +19,16 @@ import java.util.UUID;
 public interface DossierRepository extends JpaRepository<Dossier, UUID>, JpaSpecificationExecutor<Dossier> {
 
     Optional<Dossier> findByReference(String reference);
+
+    Optional<Dossier> findByIdAndEntrepreneurId(UUID id, UUID entrepreneurId);
+
+    Page<Dossier> findByEntrepreneurId(UUID entrepreneurId, Pageable pageable);
+
+    Page<Dossier> findByEntrepreneurIdAndStatut(UUID entrepreneurId, DossierStatus statut, Pageable pageable);
+
+    long countByEntrepreneurId(UUID entrepreneurId);
+
+    long countByEntrepreneurIdAndStatut(UUID entrepreneurId, DossierStatus statut);
 
     long countByStatut(DossierStatus statut);
 
