@@ -10,6 +10,9 @@ import com.backend.exception.EmailAlreadyUsedException;
 import com.backend.repository.DossierRepository;
 import com.backend.repository.UtilisateurRepository;
 import com.backend.service.AdminService;
+import com.backend.service.EmailService;
+import com.backend.service.RefreshTokenService;
+import com.backend.util.PasswordGenerator;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -37,6 +40,8 @@ public class AdminServiceImpl implements AdminService {
     private final DossierRepository dossierRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final RefreshTokenService refreshTokenService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMM", Locale.FRENCH)
             .withZone(ZoneId.of("Africa/Casablanca"));
@@ -47,11 +52,15 @@ public class AdminServiceImpl implements AdminService {
     public AdminServiceImpl(
             DossierRepository dossierRepository,
             UtilisateurRepository utilisateurRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            EmailService emailService,
+            RefreshTokenService refreshTokenService
     ) {
         this.dossierRepository = dossierRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Override
@@ -255,11 +264,16 @@ public class AdminServiceImpl implements AdminService {
             throw new EmailAlreadyUsedException(normalizedEmail);
         }
 
+        // Le mot de passe est généré automatiquement s'il n'est pas fourni
+        String rawPassword = (req.password() != null && !req.password().trim().isEmpty())
+                ? req.password().trim()
+                : PasswordGenerator.generateDefaultPassword();
+
         Utilisateur agent = new Utilisateur();
         agent.setNom(req.lastName().trim());
         agent.setPrenom(req.firstName().trim());
         agent.setEmail(normalizedEmail);
-        agent.setPassword(passwordEncoder.encode(req.password()));
+        agent.setPassword(passwordEncoder.encode(rawPassword));
         agent.setRole(RoleUtilisateur.AGENT);
         agent.setActif(true);
         agent.setOrganisme(req.organization().trim());
@@ -268,11 +282,21 @@ public class AdminServiceImpl implements AdminService {
         agent.setLastActivityAt(Instant.now());
 
         Utilisateur saved = utilisateurRepository.save(agent);
-        return mapAgentToResponse(saved);
+
+        // Envoi automatique de l'e-mail de bienvenue avec identifiants et lien de connexion
+        String agentFullName = (saved.getPrenom() + " " + saved.getNom()).trim();
+        emailService.sendAgentWelcomeEmail(
+                saved.getEmail(),
+                agentFullName,
+                rawPassword,
+                saved.getOrganisme()
+        );
+
+        return mapAgentToResponse(saved, rawPassword);
     }
 
     @Override
-    public AgentAdminResponse updateAgentStatus(UUID agentId, boolean active) {
+    public AgentAdminResponse updateAgentStatus(UUID agentId, boolean active, String reason) {
         Utilisateur agent = utilisateurRepository.findById(agentId)
                 .orElseThrow(() -> new NoSuchElementException("Agent non trouvé avec l'ID: " + agentId));
 
@@ -280,10 +304,31 @@ public class AdminServiceImpl implements AdminService {
             throw new NoSuchElementException("L'utilisateur demandé n'est pas un agent.");
         }
 
+        // Si désactivation : le motif est obligatoire
+        if (!active) {
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new IllegalArgumentException("Le motif de désactivation est obligatoire.");
+            }
+        }
+
         agent.setActif(active);
         agent.setLastActivityAt(Instant.now());
         Utilisateur saved = utilisateurRepository.saveAndFlush(agent);
-        return mapAgentToResponse(saved);
+
+        if (!active) {
+            // Révoquer immédiatement toutes les sessions actives (refresh tokens)
+            refreshTokenService.revokeAllByUser(agent.getId());
+
+            // Envoi automatique de l'e-mail de désactivation avec le motif officiel
+            String agentFullName = (saved.getPrenom() + " " + saved.getNom()).trim();
+            emailService.sendAgentDeactivationEmail(
+                    saved.getEmail(),
+                    agentFullName,
+                    reason.trim()
+            );
+        }
+
+        return mapAgentToResponse(saved, null);
     }
 
     @Override
@@ -369,6 +414,10 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private AgentAdminResponse mapAgentToResponse(Utilisateur a) {
+        return mapAgentToResponse(a, null);
+    }
+
+    private AgentAdminResponse mapAgentToResponse(Utilisateur a, String generatedPassword) {
         String fullName = a.getPrenom() + " " + a.getNom();
         String initial1 = a.getPrenom() != null && !a.getPrenom().isEmpty() ? a.getPrenom().substring(0, 1).toUpperCase() : "A";
         String initial2 = a.getNom() != null && !a.getNom().isEmpty() ? a.getNom().substring(0, 1).toUpperCase() : "G";
@@ -390,7 +439,8 @@ public class AdminServiceImpl implements AdminService {
                 a.isActif(),
                 lastActivityFormatted,
                 a.getLastActivityAt(),
-                a.getCreatedAt()
+                a.getCreatedAt(),
+                generatedPassword
         );
     }
 

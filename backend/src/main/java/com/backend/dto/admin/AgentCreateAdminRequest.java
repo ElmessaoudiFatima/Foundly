@@ -17,8 +17,7 @@ public record AgentCreateAdminRequest(
         @Email(message = "Format d'email invalide")
         String email,
 
-        @NotBlank(message = "Le mot de passe est obligatoire")
-        @Size(min = 8, max = 72, message = "Le mot de passe doit comporter entre 8 et 72 caractères")
+        @Size(max = 72, message = "Le mot de passe ne doit pas dépasser 72 caractères")
         String password,
 
         @NotBlank(message = "L'organisme est obligatoire")

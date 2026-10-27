@@ -756,41 +756,31 @@
                         <!-- Actions -->
                         <td class="text-right">
                           <div class="agent-actions-row">
-                            <button
-                              type="button"
-                              class="text-action-btn"
-                              (click)="openAgentDetails(agent)"
-                              title="Modifier les informations">
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 20h9"/>
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                              </svg>
-                              <span>Modifier</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              class="text-action-btn"
-                              (click)="openAgentDetails(agent)"
-                              title="Consulter l'agent">
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                              </svg>
-                              <span>Voir</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              class="text-action-btn action-danger"
-                              (click)="toggleAgentStatus(agent)"
-                              [title]="agent.active ? 'Désactiver le compte' : 'Activer le compte'">
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                              </svg>
-                              <span>{{ agent.active ? 'Désactiver' : 'Activer' }}</span>
-                            </button>
+                            @if (agent.active) {
+                              <button
+                                type="button"
+                                class="text-action-btn action-danger"
+                                (click)="openDeactivateModal(agent)"
+                                title="Désactiver le compte de cet agent">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <circle cx="12" cy="12" r="10"/>
+                                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                                <span>Désactiver</span>
+                              </button>
+                            } @else {
+                              <button
+                                type="button"
+                                class="text-action-btn action-success"
+                                (click)="activateAgent(agent)"
+                                title="Réactiver le compte de cet agent">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                  <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <span>Activer</span>
+                              </button>
+                            }
                           </div>
                         </td>
                       </tr>
@@ -1208,9 +1198,17 @@
           <input type="email" [(ngModel)]="newAgent.email" name="email" required class="form-input" placeholder="ex: nadia.elfassi@ompic.ma"/>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Mot de passe temporaire * (min. 8 caractères)</label>
-          <input type="password" [(ngModel)]="newAgent.password" name="password" required class="form-input" placeholder="••••••••••••"/>
+        <div class="agent-password-notice">
+          <div class="notice-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="notice-text">
+            <strong>Génération automatique du mot de passe</strong>
+            <p>Le mot de passe de l'agent sera généré automatiquement par la plateforme. Dès que vous cliquerez sur <em>« Enregistrer l'agent »</em>, un e-mail officiel lui sera transmis avec son identifiant, son mot de passe et un bouton direct pour se connecter à son espace.</p>
+          </div>
         </div>
 
         <div class="form-group">
@@ -1298,44 +1296,74 @@
 }
 
 <!-- ============================================================== -->
-<!-- MODAL : DÉTAIL / MODIFICATION AGENT                            -->
+<!-- MODAL : DÉSACTIVATION COMPTE AGENT AVEC MOTIF OBLIGATOIRE     -->
 <!-- ============================================================== -->
-@if (selectedAgent) {
-  <div class="modal-backdrop" (click)="closeAgentDetails()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">{{ selectedAgent.fullName }}</h3>
-          <p class="modal-subtitle">{{ selectedAgent.organization }}</p>
+@if (isDeactivateModalOpen && agentToDeactivate) {
+  <div class="modal-backdrop" (click)="closeDeactivateModal()">
+    <div class="modal-card deactivation-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header deactivation-modal-header">
+        <div class="deactivation-header-content">
+          <div class="deactivation-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title text-danger">Désactiver le compte agent</h3>
+            <p class="modal-subtitle">Cette action suspend immédiatement les accès de l'agent.</p>
+          </div>
         </div>
-        <button type="button" class="modal-close-btn" (click)="closeAgentDetails()">&times;</button>
+        <button type="button" class="modal-close-btn" (click)="closeDeactivateModal()">&times;</button>
       </div>
 
       <div class="modal-body">
-        <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">Adresse e-mail</span>
-            <span class="detail-value font-mono">{{ selectedAgent.email }}</span>
+        @if (deactivationError) {
+          <div class="form-error-alert">{{ deactivationError }}</div>
+        }
+
+        <div class="agent-target-card">
+          <div class="agent-target-avatar">{{ agentToDeactivate.initials }}</div>
+          <div class="agent-target-info">
+            <span class="agent-target-name">{{ agentToDeactivate.fullName }}</span>
+            <span class="agent-target-meta">{{ agentToDeactivate.email }} &bull; {{ agentToDeactivate.organization }}</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">Statut du compte</span>
-            <span class="detail-value">{{ selectedAgent.active ? 'Actif' : 'Désactivé' }}</span>
+        </div>
+
+        <div class="deactivation-warning-callout">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-text">
+            <strong>Conséquences de la désactivation :</strong>
+            L'agent recevra automatiquement un e-mail officiel l'informant de cette décision ainsi que de la raison indiquée ci-dessous.
+            Toute tentative de connexion lui sera strictement refusée.
           </div>
-          <div class="detail-item">
-            <span class="detail-label">Dernière activité enregistrée</span>
-            <span class="detail-value">{{ selectedAgent.lastActivityFormatted }}</span>
-          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="deact-reason">
+            Motif de la désactivation <span class="required-asterisk">*</span>
+          </label>
+          <textarea
+            id="deact-reason"
+            [(ngModel)]="deactivationReason"
+            name="deactivationReason"
+            required
+            rows="3"
+            class="form-input form-textarea"
+            placeholder="Précisez la raison de la désactivation (ex : Fin de mission, manquement aux obligations de traitement, changement de service...)...">
+          </textarea>
+          <span class="form-help-text">Ce motif sera transmis directement par e-mail à l'agent concerné.</span>
         </div>
       </div>
 
       <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeDeactivateModal()">Annuler</button>
         <button
           type="button"
-          class="btn btn-outline"
-          (click)="toggleAgentStatus(selectedAgent); closeAgentDetails()">
-          {{ selectedAgent.active ? 'Désactiver le compte' : 'Activer le compte' }}
+          class="btn btn-danger"
+          [disabled]="isSubmittingDeactivation || !deactivationReason.trim()"
+          (click)="confirmDeactivation()">
+          {{ isSubmittingDeactivation ? 'Désactivation en cours...' : 'Confirmer la désactivation' }}
         </button>
-        <button type="button" class="btn btn-primary" (click)="closeAgentDetails()">Fermer</button>
       </div>
     </div>
   </div>

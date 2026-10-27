@@ -94,10 +94,10 @@ export class AdminService {
     return this.http.post<AgentAdminItem>(`${this.baseUrl}/agents`, payload);
   }
 
-  updateAgentStatus(agentId: string, active: boolean): Observable<AgentAdminItem> {
+  updateAgentStatus(agentId: string, active: boolean, reason?: string): Observable<AgentAdminItem> {
     return this.http.patch<AgentAdminItem>(
       `${this.baseUrl}/agents/${encodeURIComponent(agentId)}/status`,
-      { active },
+      { active, reason },
       { headers: { 'Content-Type': 'application/json' } }
     );
   }

@@ -65,6 +65,7 @@ export interface AgentAdminItem {
   lastActivityFormatted: string;
   lastActivityAt?: string;
   createdAt: string;
+  generatedPassword?: string;
 }
 
 export interface PagedAgents {
@@ -79,7 +80,7 @@ export interface CreateAgentPayload {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
+  password?: string;
   organization: string;
   phone?: string;
   cin?: string;
