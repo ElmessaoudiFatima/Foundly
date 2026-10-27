@@ -143,6 +143,13 @@ export class AdminComponent implements OnInit {
     }).format(new Date());
   }
 
+  get profileJoinDate(): string {
+    return new Intl.DateTimeFormat('fr-FR', {
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date(2024, 0, 15));
+  }
+
   get topLegalFormLabel(): string {
     const forms = this.dashboard.repartitionFormes;
     if (!forms?.length) return '—';

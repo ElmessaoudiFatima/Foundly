@@ -152,7 +152,6 @@
         </svg>
         <span>Déconnexion</span>
       </button>
-      <div class="sidebar-footer">Foundly Admin - v1.0</div>
     </div>
   </aside>
 
@@ -877,12 +876,222 @@
       }
 
       <!-- Other sections placeholder -->
-      @if (activeTab === 'workflows' || activeTab === 'exports' || activeTab === 'profile') {
+      @if (activeTab === 'workflows' || activeTab === 'exports') {
         <div class="coming-soon-card">
           <div class="coming-icon">⚙️</div>
           <h2>Module d'administration</h2>
           <p>Le module « {{ activeTab | uppercase }} » est supervisé par l'Administration centrale de Foundly.</p>
           <button type="button" class="btn btn-primary" (click)="setTab('dashboard')">Retour au tableau de bord</button>
+        </div>
+      }
+
+      <!-- ============================================================== -->
+      <!-- SECTION 7 : MON PROFIL ADMINISTRATEUR                          -->
+      <!-- ============================================================== -->
+      @if (activeTab === 'profile') {
+        <div class="profile-view">
+
+          <!-- Page Header -->
+          <div class="page-header-row">
+            <div>
+              <h1 class="page-main-title">Mon profil</h1>
+              <p class="page-main-subtitle">Consultez et gérez vos informations personnelles et de sécurité.</p>
+            </div>
+          </div>
+
+          <!-- Profile Layout: Hero Card + Info Sections -->
+          <div class="profile-layout">
+
+            <!-- LEFT: Identity Card -->
+            <div class="profile-identity-card">
+              <div class="profile-avatar-large">{{ userInitials }}</div>
+              <div class="profile-identity-name">{{ user()?.firstName }} {{ user()?.lastName }}</div>
+              <div class="profile-identity-role">Administrateur Foundly</div>
+              <div class="profile-identity-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span>Supervision nationale</span>
+              </div>
+              <div class="profile-identity-divider"></div>
+              <div class="profile-identity-meta">
+                <div class="profile-meta-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>{{ user()?.firstName }} {{ user()?.lastName }}</span>
+                </div>
+                <div class="profile-meta-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <span>{{ user()?.email || 'admin&#64;foundly.ma' }}</span>
+                </div>
+                <div class="profile-meta-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span>Actif depuis {{ profileJoinDate }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: Info + Security Sections -->
+            <div class="profile-right-col">
+
+              <!-- Informations personnelles -->
+              <div class="profile-section-card">
+                <div class="profile-section-header">
+                  <div class="profile-section-icon-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="profile-section-title">Informations personnelles</h3>
+                    <p class="profile-section-sub">Vos données d'identité enregistrées sur la plateforme.</p>
+                  </div>
+                </div>
+                <div class="profile-info-grid">
+                  <div class="profile-info-item">
+                    <span class="profile-info-label">Prénom</span>
+                    <span class="profile-info-value">{{ user()?.firstName || '—' }}</span>
+                  </div>
+                  <div class="profile-info-item">
+                    <span class="profile-info-label">Nom de famille</span>
+                    <span class="profile-info-value">{{ user()?.lastName || '—' }}</span>
+                  </div>
+                  <div class="profile-info-item profile-info-full">
+                    <span class="profile-info-label">Adresse e-mail</span>
+                    <span class="profile-info-value font-mono">{{ user()?.email || 'admin&#64;foundly.ma' }}</span>
+                  </div>
+                  <div class="profile-info-item">
+                    <span class="profile-info-label">Rôle</span>
+                    <span class="profile-info-value">
+                      <span class="profile-role-tag">ADMINISTRATEUR</span>
+                    </span>
+                  </div>
+                  <div class="profile-info-item">
+                    <span class="profile-info-label">Niveau d'accès</span>
+                    <span class="profile-info-value">Supervision nationale</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sécurité du compte -->
+              <div class="profile-section-card">
+                <div class="profile-section-header">
+                  <div class="profile-section-icon-wrap profile-section-icon-security">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="profile-section-title">Sécurité du compte</h3>
+                    <p class="profile-section-sub">Gérez votre authentification et vos sessions actives.</p>
+                  </div>
+                </div>
+                <div class="profile-security-items">
+                  <div class="profile-security-row">
+                    <div class="profile-security-row-left">
+                      <div class="profile-security-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="profile-security-label">Mot de passe</div>
+                        <div class="profile-security-hint">Dernière modification : il y a 30 jours</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-profile-action" (click)="showToast('Fonctionnalité de modification du mot de passe disponible prochainement.')">
+                      Modifier
+                    </button>
+                  </div>
+
+                  <div class="profile-security-divider"></div>
+
+                  <div class="profile-security-row">
+                    <div class="profile-security-row-left">
+                      <div class="profile-security-icon profile-security-icon--green">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="profile-security-label">Session active</div>
+                        <div class="profile-security-hint">Connecté depuis ce navigateur — {{ nationalViewDate }}</div>
+                      </div>
+                    </div>
+                    <span class="profile-security-badge-ok">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Sécurisée
+                    </span>
+                  </div>
+
+                  <div class="profile-security-divider"></div>
+
+                  <div class="profile-security-row">
+                    <div class="profile-security-row-left">
+                      <div class="profile-security-icon profile-security-icon--amber">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                          <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="profile-security-label">Authentification à deux facteurs</div>
+                        <div class="profile-security-hint">Renforcez la sécurité de votre compte admin</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-profile-action btn-profile-action--outline" (click)="showToast('Configuration 2FA disponible prochainement.')">
+                      Activer
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Zone danger -->
+              <div class="profile-section-card profile-danger-card">
+                <div class="profile-section-header">
+                  <div class="profile-section-icon-wrap profile-section-icon-danger">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="profile-section-title profile-danger-title">Zone dangereuse</h3>
+                    <p class="profile-section-sub">Actions irréversibles sur votre compte administrateur.</p>
+                  </div>
+                </div>
+                <div class="profile-danger-actions">
+                  <div class="profile-danger-row">
+                    <div>
+                      <div class="profile-danger-label">Se déconnecter de toutes les sessions</div>
+                      <div class="profile-danger-hint">Révoque tous les tokens d'accès actifs sur tous les appareils.</div>
+                    </div>
+                    <button type="button" class="btn-danger-outline" (click)="logout()">
+                      Déconnecter partout
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       }
 
