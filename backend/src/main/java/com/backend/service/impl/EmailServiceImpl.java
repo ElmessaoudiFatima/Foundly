@@ -212,18 +212,22 @@ public class EmailServiceImpl implements EmailService {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
 
-                String from = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom : mailUsername;
-                helper.setFrom(from);
+                // Alignement SPF/DKIM : si mailFrom est le domaine factice foundly.ma ou vide,
+                // utiliser le compte authentifié (mailUsername) avec le libellé « Foundly »
+                String fromAddress = (mailFrom != null && !mailFrom.isBlank() && !mailFrom.contains("@foundly.ma"))
+                        ? mailFrom
+                        : mailUsername;
+                helper.setFrom(fromAddress, "Foundly");
                 helper.setTo(toEmail);
                 helper.setSubject(subject);
                 helper.setText(htmlContent, true);
 
                 mailSender.send(message);
-                log.info("E-mail envoyé avec succès à {} : {}", toEmail, contextLog);
+                log.info("E-mail envoyé avec succès à {} (From: {}) : {}", toEmail, fromAddress, contextLog);
                 return;
             } catch (Exception e) {
-                log.warn("Échec d'envoi de l'e-mail via SMTP ({}) à {} : {}. Bascule sur le journal applicatif.",
-                        contextLog, toEmail, e.getMessage());
+                log.error("Échec d'envoi de l'e-mail via SMTP ({}) à {} : {}",
+                        contextLog, toEmail, e.getMessage(), e);
             }
         } else {
             log.info("Serveur SMTP non configuré (spring.mail.username vide). Simulation de l'envoi d'e-mail.");
