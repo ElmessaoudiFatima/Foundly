@@ -1,0 +1,245 @@
+<div class="wf-container">
+
+  <!-- ===== TITRE & BOUTON D'ACTION (Image 1) ===== -->
+  <div class="wf-page-header">
+    <div class="wf-title-group">
+      <h1 class="wf-title">Versions de workflows</h1>
+      <p class="wf-subtitle">Gérez les parcours appliqués aux nouvelles créations d'entreprise.</p>
+    </div>
+    <button type="button" class="btn-create-workflow" (click)="openCreateModal()">
+      <span>Créer une nouvelle version</span>
+      <span class="btn-create-plus">+</span>
+    </button>
+  </div>
+
+  <!-- ===== BANDEAU D'AVERTISSEMENT RG14 (Image 1) ===== -->
+  <div class="wf-banner-warning">
+    <div class="wf-banner-icon-box">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <div class="wf-banner-text">
+      <strong class="wf-banner-title">Gestion des versions</strong>
+      <span class="wf-banner-desc">Les modifications s'appliquent uniquement aux nouveaux dossiers. Les dossiers en cours conservent leur workflow initial.</span>
+    </div>
+  </div>
+
+  <!-- ===== ÉTAT DE CHARGEMENT ===== -->
+  @if (isLoading) {
+    <div class="wf-state-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" class="wf-spinner">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      <span>Chargement des versions de workflows...</span>
+    </div>
+  }
+
+  <!-- ===== AUCUNE VERSION ===== -->
+  @if (!isLoading && versions.length === 0) {
+    <div class="wf-state-card wf-empty-card">
+      <div class="wf-empty-icon-circle">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15"/>
+          <circle cx="18" cy="6" r="3"/>
+          <circle cx="6" cy="18" r="3"/>
+          <path d="M18 9a9 9 0 0 1-9 9"/>
+        </svg>
+      </div>
+      <h3>Aucune version configurée</h3>
+      <p>Créez votre première version pour initialiser le circuit de création d'entreprise.</p>
+      <button type="button" class="btn-create-workflow" (click)="openCreateModal()">
+        Créer une version +
+      </button>
+    </div>
+  }
+
+  <!-- ===== LISTE DES CARTES DE WORKFLOWS (Image 1) ===== -->
+  @if (!isLoading && versions.length > 0) {
+    <div class="wf-cards-stack">
+      @for (v of versions; track v.id) {
+        <div class="wf-card-row" (click)="openWorkflowEditor(v.id)">
+
+          <!-- GAUCHE : Icône + Nom forme + Nombre étapes / Date -->
+          <div class="wf-card-left">
+            <div class="wf-icon-box">
+              <!-- Icône SVG circuit / workflow sans emoji -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="6" y1="3" x2="6" y2="15"/>
+                <circle cx="18" cy="6" r="3"/>
+                <circle cx="6" cy="18" r="3"/>
+                <path d="M18 9a9 9 0 0 1-9 9"/>
+              </svg>
+            </div>
+            <div class="wf-info-col">
+              <h3 class="wf-forme-name">{{ v.formeJuridiqueLabel }}</h3>
+              <p class="wf-meta-sub">
+                {{ v.nombreEtapes }} étapes &middot; Modifié le {{ formatDate(v.dateModification) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- DROITE : Numéro de version + Badge de statut + Bouton Ouvrir -->
+          <div class="wf-card-right">
+            <!-- Numéro de version (ex: v2.1) -->
+            <span class="wf-version-tag">v{{ v.numeroVersion }}</span>
+
+            <!-- Badge statut -->
+            @if (v.statut === 'ACTIVE') {
+              <span class="wf-status-pill wf-pill-active">
+                <span class="wf-dot-icon wf-dot-active"></span>
+                Active
+              </span>
+            } @else if (v.statut === 'BROUILLON') {
+              <span class="wf-status-pill wf-pill-brouillon">
+                <span class="wf-dot-icon wf-dot-brouillon"></span>
+                Brouillon
+              </span>
+            } @else {
+              <span class="wf-status-pill wf-pill-archived">
+                <span class="wf-dot-icon wf-dot-archived"></span>
+                Archivée
+              </span>
+            }
+
+            <!-- Bouton Ouvrir avec icône crayon SVG -->
+            <button
+              type="button"
+              class="btn-open-workflow"
+              (click)="$event.stopPropagation(); openWorkflowEditor(v.id)"
+              title="Ouvrir le workflow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              <span>{{ v.statut === 'ARCHIVEE' ? 'Consulter' : 'Ouvrir' }}</span>
+            </button>
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODALE : CRÉER UNE NOUVELLE VERSION                            -->
+<!-- ============================================================== -->
+@if (isCreateModalOpen) {
+  <div class="wf-modal-backdrop" (click)="closeCreateModal()">
+    <div class="wf-modal-card" (click)="$event.stopPropagation()">
+      <div class="wf-modal-header">
+        <div>
+          <h2 class="wf-modal-title">Créer une nouvelle version</h2>
+          <p class="wf-modal-subtitle">Une nouvelle version sera initialisée en statut « Brouillon ».</p>
+        </div>
+        <button type="button" class="wf-modal-close" (click)="closeCreateModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
+        @if (createError) {
+          <div class="wf-modal-alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ createError }}</span>
+          </div>
+        }
+
+        <div class="wf-form-group">
+          <label class="wf-label">Forme juridique <span class="required">*</span></label>
+          <select class="wf-select" formControlName="formeJuridique">
+            <option value="" disabled>Sélectionnez une forme juridique</option>
+            @for (f of formes; track f.code) {
+              <option [value]="f.code">{{ f.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="wf-form-group">
+          <label class="wf-label">Dupliquer depuis une version existante</label>
+          <select class="wf-select" formControlName="dupliquerDepuis">
+            <option [ngValue]="null">Partir d'une version vierge</option>
+            @for (v of availableVersionsForDuplication; track v.id) {
+              <option [value]="v.id">{{ v.formeJuridiqueLabel }} v{{ v.numeroVersion }} ({{ v.statutLabel }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="wf-form-group">
+          <label class="wf-label">Description ou note de révision</label>
+          <textarea
+            class="wf-textarea"
+            rows="3"
+            formControlName="description"
+            placeholder="Ex: Mise à jour des frais de publication légale selon décret 2026...">
+          </textarea>
+        </div>
+
+        <div class="wf-modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeCreateModal()">Annuler</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmittingCreate || createForm.invalid">
+            @if (isSubmittingCreate) {
+              <span>Création en cours...</span>
+            } @else {
+              <span>Créer le brouillon</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODALE : CONFIRMATION PUBLICATION / ARCHIVAGE                  -->
+<!-- ============================================================== -->
+@if (isConfirmModalOpen) {
+  <div class="wf-modal-backdrop" (click)="closeConfirmModal()">
+    <div class="wf-modal-card wf-confirm-card" (click)="$event.stopPropagation()">
+      <div class="wf-confirm-icon-box" [class.wf-confirm-danger]="confirmAction === 'archive'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      <h3 class="wf-confirm-title">
+        {{ confirmAction === 'publish' ? 'Publier la version ?' : 'Archiver la version ?' }}
+      </h3>
+
+      <p class="wf-confirm-desc">
+        @if (confirmAction === 'publish') {
+          La version <strong>{{ confirmVersionLabel }}</strong> deviendra la version <strong>Active</strong>.
+          L'actuelle version Active passera automatiquement en statut <strong>Archivée</strong>.
+          Les dossiers déjà créés conserveront leur workflow d'origine (RG14).
+        } @else {
+          La version <strong>{{ confirmVersionLabel }}</strong> sera archivée et passera en lecture seule définitive.
+        }
+      </p>
+
+      <div class="wf-modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeConfirmModal()">Annuler</button>
+        <button
+          type="button"
+          class="btn-submit"
+          [class.btn-danger]="confirmAction === 'archive'"
+          [disabled]="isSubmittingConfirm"
+          (click)="confirmActionSubmit()">
+          @if (isSubmittingConfirm) {
+            <span>Traitement...</span>
+          } @else {
+            <span>{{ confirmAction === 'publish' ? 'Confirmer la publication' : 'Confirmer l\'archivage' }}</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

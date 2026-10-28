@@ -145,6 +145,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
+    // -----------------------------------------------------------------------
+    // 404 WORKFLOW_VERSION_NOT_FOUND
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(WorkflowVersionNotFoundException.class)
+    public ResponseEntity<ApiError> handleWorkflowVersionNotFound(WorkflowVersionNotFoundException ex,
+                                                                   HttpServletRequest request) {
+        ApiError error = new ApiError(404, "WORKFLOW_VERSION_NOT_FOUND",
+                ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    // -----------------------------------------------------------------------
+    // 409 WORKFLOW_VERSION_NOT_EDITABLE
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(WorkflowVersionNotEditableException.class)
+    public ResponseEntity<ApiError> handleWorkflowVersionNotEditable(WorkflowVersionNotEditableException ex,
+                                                                      HttpServletRequest request) {
+        ApiError error = new ApiError(409, "WORKFLOW_VERSION_NOT_EDITABLE",
+                ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ApiError> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
         ApiError error = new ApiError(404, "NOT_FOUND",

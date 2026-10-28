@@ -1,0 +1,535 @@
+/* ===================================================================
+   Workflow List View — Design inspiré de la maquette (Image 1)
+   Couleurs : Foundly Navy (#1F3864), Teal (#0D9488), Amber (#D97706)
+   Aucun emoji — icônes SVG pures
+   =================================================================== */
+
+.wf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ===== EN-TÊTE DE LA PAGE (Image 1) ===== */
+.wf-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+.wf-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wf-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1E293B;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.wf-subtitle {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Bouton bleu marine foncé "Créer une nouvelle version +" */
+.btn-create-workflow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1F3864;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(31, 56, 100, 0.2);
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.btn-create-workflow:hover {
+  background-color: #152747;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(31, 56, 100, 0.25);
+}
+
+.btn-create-workflow:active {
+  transform: translateY(0);
+}
+
+.btn-create-plus {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* ===== BANDEAU D'AVERTISSEMENT RG14 (Image 1) ===== */
+.wf-banner-warning {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: #FFFDF5;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  padding: 14px 20px;
+  box-shadow: 0 1px 2px rgba(217, 119, 6, 0.04);
+}
+
+.wf-banner-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wf-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400E;
+}
+
+.wf-banner-desc {
+  font-size: 12.5px;
+  color: #A16207;
+  line-height: 1.45;
+}
+
+/* ===== LISTE DE CARTES HORIZONTALES (Image 1) ===== */
+.wf-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.wf-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.wf-card-row:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  transform: translateY(-1px);
+}
+
+/* GAUCHE : Icône + Libellé + Détail */
+.wf-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.wf-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.wf-card-row:hover .wf-icon-box {
+  background-color: #E2E8F0;
+}
+
+.wf-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wf-forme-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.wf-meta-sub {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* DROITE : Version + Badge statut + Bouton Ouvrir */
+.wf-card-right {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.wf-version-tag {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Badges de statut pill avec dot */
+.wf-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.wf-dot-icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Active : Vert émeraude */
+.wf-pill-active {
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+.wf-dot-active {
+  background-color: #059669;
+}
+
+/* Brouillon : Ambre doré */
+.wf-pill-brouillon {
+  background-color: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+.wf-dot-brouillon {
+  background-color: #D97706;
+}
+
+/* Archivée : Gris ardoise */
+.wf-pill-archived {
+  background-color: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+.wf-dot-archived {
+  background-color: #94A3B8;
+}
+
+/* Bouton Ouvrir avec crayon vert teal (Image 1) */
+.btn-open-workflow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #0D9488;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-open-workflow:hover {
+  background-color: #F0FDFA;
+  color: #0F766E;
+  text-decoration: underline;
+}
+
+/* ===== ÉTATS VIDE ET CHARGEMENT ===== */
+.wf-state-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 48px 24px;
+  color: #64748B;
+  font-size: 14px;
+}
+
+.wf-empty-card {
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.wf-empty-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wf-empty-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.wf-empty-card p {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0;
+  max-width: 400px;
+}
+
+.wf-spinner {
+  animation: wf-spin 0.8s linear infinite;
+}
+
+@keyframes wf-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== MODALES (Design System Foundly) ===== */
+.wf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.wf-modal-card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 28px;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.wf-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.wf-modal-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 4px 0;
+}
+
+.wf-modal-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+.wf-modal-close {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.wf-modal-close:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.wf-modal-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #DC2626;
+}
+
+.wf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.wf-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.wf-label .required {
+  color: #EF4444;
+}
+
+.wf-select,
+.wf-textarea {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #0F172A;
+  background-color: #FFFFFF;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.wf-select:focus,
+.wf-textarea:focus {
+  outline: none;
+  border-color: #1F3864;
+  box-shadow: 0 0 0 3px rgba(31, 56, 100, 0.1);
+}
+
+.wf-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+.btn-submit {
+  background-color: #1F3864;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #152747;
+}
+
+.btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background-color: #DC2626 !important;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #B91C1C !important;
+}
+
+/* Modale de confirmation */
+.wf-confirm-card {
+  max-width: 460px;
+  text-align: center;
+}
+
+.wf-confirm-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}
+
+.wf-confirm-danger {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+.wf-confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px 0;
+}
+
+.wf-confirm-desc {
+  font-size: 13.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wf-confirm-card .wf-modal-footer {
+  justify-content: center;
+}

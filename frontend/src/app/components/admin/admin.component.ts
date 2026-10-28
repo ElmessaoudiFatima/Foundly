@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,13 +15,15 @@ import {
   OrganismeCreatePayload,
   OrganismeUpdatePayload
 } from '../../models/admin.models';
+import { WorkflowListComponent } from './workflows/workflow-list/workflow-list.component';
+import { WorkflowEditorComponent } from './workflows/workflow-editor/workflow-editor.component';
 
-type AdminTab = 'dashboard' | 'dossiers' | 'agents' | 'organismes' | 'workflows' | 'exports' | 'profile';
+type AdminTab = 'dashboard' | 'dossiers' | 'agents' | 'organismes' | 'workflows' | 'profile';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WorkflowListComponent, WorkflowEditorComponent],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
@@ -34,6 +36,25 @@ export class AdminComponent implements OnInit {
 
   // Active section
   activeTab: AdminTab = 'dashboard';
+
+  // Profile dropdown menu state
+  isProfileMenuOpen = false;
+
+  toggleProfileMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.isProfileMenuOpen) {
+      this.isProfileMenuOpen = false;
+    }
+  }
+
+  // ===================== WORKFLOWS =====================
+  // null = afficher la liste, string = afficher l'éditeur de la version avec cet ID
+  workflowEditorVersionId: string | null = null;
 
   // Toast feedback
   toastMessage = '';
@@ -610,6 +631,14 @@ export class AdminComponent implements OnInit {
 
   getOrganismeInitials(org: OrganismeItem): string {
     return org.code.substring(0, 3);
+  }
+
+  openWorkflowEditor(versionId: string): void {
+    this.workflowEditorVersionId = versionId;
+  }
+
+  closeWorkflowEditor(): void {
+    this.workflowEditorVersionId = null;
   }
 
   showToast(message: string): void {

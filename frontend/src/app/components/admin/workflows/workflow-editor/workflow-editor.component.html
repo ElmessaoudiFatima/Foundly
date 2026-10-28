@@ -1,0 +1,480 @@
+<div class="wf-editor-container">
+
+  <!-- ===== BARRE SUPÉRIEURE : RETOUR + TITRE ===== -->
+  <div class="wf-editor-header">
+    <div class="wf-header-left">
+      <button type="button" class="btn-back-link" (click)="goBack()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        <span>Retour aux versions</span>
+      </button>
+      <h1 class="wf-editor-main-title">Éditeur de workflow</h1>
+    </div>
+
+    @if (version && isEditable) {
+      <div class="wf-header-actions">
+        <button type="button" class="btn-create-workflow" (click)="openAddModal()">
+          <span>Ajouter une étape</span>
+          <span class="btn-create-plus">+</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- ===== BANDEAU LECTURE SEULE SI ACTIVE OU ARCHIVÉE ===== -->
+  @if (version && !isEditable) {
+    <div class="wf-banner-info">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>
+        @if (version.statut === 'ACTIVE') {
+          Cette version est <strong>Active</strong>. Pour la modifier, créez une nouvelle version en Brouillon depuis la liste (RG14).
+        } @else {
+          Cette version est <strong>Archivée</strong>. Elle est consultable en lecture seule.
+        }
+      </span>
+    </div>
+  }
+
+  <!-- ===== CHARGEMENT ===== -->
+  @if (isLoading) {
+    <div class="wf-state-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" class="wf-spinner">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      <span>Chargement de la configuration du workflow...</span>
+    </div>
+  }
+
+  <!-- ===== DISPOSITION EN 2 COLONNES (Image 2) ===== -->
+  @if (!isLoading && version) {
+    <div class="wf-editor-grid">
+
+      <!-- COLONNE GAUCHE : LISTE DES CARTES D'ÉTAPES -->
+      <div class="wf-steps-column">
+
+        @if (version.etapes.length === 0) {
+          <div class="wf-state-card wf-empty-card">
+            <p>Aucune étape configurée dans cette version.</p>
+            @if (isEditable) {
+              <button type="button" class="btn-create-workflow" (click)="openAddModal()">
+                Ajouter la première étape +
+              </button>
+            }
+          </div>
+        }
+
+        @for (etape of version.etapes; track etape.id; let i = $index; let first = $first; let last = $last) {
+          <div
+            class="wf-step-card"
+            [class.wf-step-card-selected]="selectedEtape?.id === etape.id"
+            (click)="selectEtape(etape)">
+
+            <!-- 1. Handle de drag + Numéro d'ordre (Image 2) -->
+            <div class="wf-step-prefix">
+              <div class="wf-drag-handle" title="Réordonner">
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
+                  <circle cx="3" cy="3" r="1.5" fill="#94A3B8"/>
+                  <circle cx="11" cy="3" r="1.5" fill="#94A3B8"/>
+                  <circle cx="3" cy="9" r="1.5" fill="#94A3B8"/>
+                  <circle cx="11" cy="9" r="1.5" fill="#94A3B8"/>
+                  <circle cx="3" cy="15" r="1.5" fill="#94A3B8"/>
+                  <circle cx="11" cy="15" r="1.5" fill="#94A3B8"/>
+                </svg>
+              </div>
+
+              <!-- Pastille ronde numéro (ex: 1, 2, 3...) -->
+              <div class="wf-step-number-circle">{{ etape.ordre }}</div>
+            </div>
+
+            <!-- 2. Code technique vert + Titre + Organisme (Image 2) -->
+            <div class="wf-step-main-info">
+              <span class="wf-step-tech-code">{{ etape.code }}</span>
+              <h3 class="wf-step-name">{{ etape.libelle }}</h3>
+              <p class="wf-step-org-subtitle">{{ getOrganismeDisplay(etape) }}</p>
+            </div>
+
+            <!-- 3. Colonne Frais (Image 2) -->
+            <div class="wf-step-meta-col wf-col-frais">
+              <span class="wf-meta-label">Frais</span>
+              <span class="wf-meta-value font-medium">{{ getFraisDisplay(etape) }}</span>
+            </div>
+
+            <!-- 4. Colonne Durée (Image 2) -->
+            <div class="wf-step-meta-col wf-col-duree">
+              <span class="wf-meta-label">Durée</span>
+              <span class="wf-meta-value">{{ etape.delaiIndicatif || '1-2 jours' }}</span>
+            </div>
+
+            <!-- 5. Colonne Condition (Image 2) -->
+            <div class="wf-step-meta-col wf-col-condition">
+              <span class="wf-meta-label">Condition</span>
+              <span class="wf-meta-value wf-condition-text">{{ getConditionDisplay(etape) }}</span>
+            </div>
+
+            <!-- 6. Bouton Configurer avec crayon vert (Image 2) -->
+            <div class="wf-step-actions-cell" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="btn-configure-step"
+                (click)="openEditModal(etape)"
+                title="Configurer cette étape">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <span>{{ isEditable ? 'Configurer' : 'Détail' }}</span>
+              </button>
+
+              <!-- Actions d'édition rapides : Monter, Descendre, Supprimer -->
+              @if (isEditable) {
+                <div class="wf-quick-reorder">
+                  <button type="button" class="btn-micro-icon" [disabled]="first" (click)="moveUp(etape)" title="Monter">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="18 15 12 9 6 15"/>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-micro-icon" [disabled]="last" (click)="moveDown(etape)" title="Descendre">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-micro-icon btn-micro-delete" (click)="openDeleteConfirm(etape)" title="Supprimer">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+
+      </div>
+
+      <!-- COLONNE DROITE : PANNEAU RÉSUMÉ DE LA VERSION (Image 2) -->
+      <aside class="wf-summary-card">
+        <h2 class="wf-summary-title">Résumé de la version</h2>
+
+        <div class="wf-summary-rows">
+          <div class="wf-summary-item">
+            <span class="wf-summary-item-label">Forme juridique</span>
+            <span class="wf-summary-item-val font-bold">{{ version.formeJuridiqueLabel }}</span>
+          </div>
+
+          <div class="wf-summary-item">
+            <span class="wf-summary-item-label">Version</span>
+            <span class="wf-summary-item-val font-mono">v{{ version.numeroVersion }}</span>
+          </div>
+
+          <div class="wf-summary-item">
+            <span class="wf-summary-item-label">Étapes</span>
+            <span class="wf-summary-item-val">{{ version.etapes.length }} configurées</span>
+          </div>
+
+          <div class="wf-summary-item">
+            <span class="wf-summary-item-label">Statut</span>
+            <div class="wf-summary-item-val">
+              @if (version.statut === 'ACTIVE') {
+                <span class="wf-status-pill wf-pill-active">
+                  <span class="wf-dot-icon wf-dot-active"></span> Active
+                </span>
+              } @else if (version.statut === 'BROUILLON') {
+                <span class="wf-status-pill wf-pill-brouillon">
+                  <span class="wf-dot-icon wf-dot-brouillon"></span> Brouillon
+                </span>
+              } @else {
+                <span class="wf-status-pill wf-pill-archived">
+                  <span class="wf-dot-icon wf-dot-archived"></span> Archivée
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <hr class="wf-summary-divider" />
+
+        <!-- Condition spécifique (Image 2) -->
+        <div class="wf-specific-condition-box">
+          <h3 class="wf-condition-header">Condition spécifique</h3>
+          <p class="wf-condition-desc">
+            {{ getSpecificConditionText() }}
+          </p>
+        </div>
+
+        <!-- Boutons d'actions principales -->
+        <div class="wf-sidebar-action-buttons">
+          @if (isEditable) {
+            <button type="button" class="btn-publish-wf" (click)="openPublishConfirm()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>Publier cette version</span>
+            </button>
+          }
+          @if (version.statut === 'ACTIVE') {
+            <button type="button" class="btn-archive-wf" (click)="openArchiveConfirm()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="21 8 21 21 3 21 3 8"/>
+                <rect x="1" y="3" width="22" height="5"/>
+                <line x1="10" y1="12" x2="14" y2="12"/>
+              </svg>
+              <span>Archiver la version</span>
+            </button>
+          }
+        </div>
+      </aside>
+
+    </div>
+  }
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODALE : CONFIGURER UNE ÉTAPE                                  -->
+<!-- ============================================================== -->
+@if (isEditModalOpen && editingEtape) {
+  <div class="wf-modal-backdrop" (click)="closeEditModal()">
+    <div class="wf-modal-card" (click)="$event.stopPropagation()">
+      <div class="wf-modal-header">
+        <div>
+          <h2 class="wf-modal-title">Configurer l'étape</h2>
+          <p class="wf-modal-subtitle">Code technique : <code>{{ editingEtape.code }}</code></p>
+        </div>
+        <button type="button" class="wf-modal-close" (click)="closeEditModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="submitEditEtape()">
+        @if (editError) {
+          <div class="wf-modal-alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ editError }}</span>
+          </div>
+        }
+
+        <div class="wf-form-group">
+          <label class="wf-label">Libellé officiel de l'étape <span class="required">*</span></label>
+          <input type="text" class="wf-select" formControlName="libelle" placeholder="Ex: Certificat négatif" />
+        </div>
+
+        <div class="wf-form-row-2">
+          <div class="wf-form-group">
+            <label class="wf-label">Code organisme</label>
+            <input type="text" class="wf-select" formControlName="organismeCode" placeholder="Ex: OMPIC, CRI, DGI..." />
+          </div>
+          <div class="wf-form-group">
+            <label class="wf-label">Libellé organisme</label>
+            <input type="text" class="wf-select" formControlName="organismeLibelle" placeholder="Ex: Office Marocain..." />
+          </div>
+        </div>
+
+        <div class="wf-form-row-2">
+          <div class="wf-form-group">
+            <label class="wf-label">Frais réglementaires (MAD)</label>
+            <input type="number" min="0" step="10" class="wf-select" formControlName="fraisMad" />
+          </div>
+          <div class="wf-form-group">
+            <label class="wf-label">Durée indicative</label>
+            <input type="text" class="wf-select" formControlName="delaiIndicatif" placeholder="Ex: 24-48h, 1 jour..." />
+          </div>
+        </div>
+
+        <div class="wf-form-group">
+          <label class="wf-label">Condition d'application</label>
+          <input type="text" class="wf-select" formControlName="conditionApplication" placeholder="Ex: SA ou SARL dont capital > 100 000 MAD" />
+        </div>
+
+        <div class="wf-checkbox-group">
+          <label class="wf-checkbox-label">
+            <input type="checkbox" formControlName="obligatoire" />
+            <span>Étape obligatoire (au moins une obligatoire par workflow)</span>
+          </label>
+          <label class="wf-checkbox-label">
+            <input type="checkbox" formControlName="externe" />
+            <span>Étape réalisée par un partenaire externe hors plateforme (ex: Banque — RG15)</span>
+          </label>
+        </div>
+
+        <div class="wf-modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeEditModal()">Annuler</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmittingEdit || editForm.invalid">
+            @if (isSubmittingEdit) {
+              <span>Enregistrement...</span>
+            } @else {
+              <span>Enregistrer les modifications</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODALE : AJOUTER UNE NOUVELLE ÉTAPE                            -->
+<!-- ============================================================== -->
+@if (isAddModalOpen) {
+  <div class="wf-modal-backdrop" (click)="closeAddModal()">
+    <div class="wf-modal-card" (click)="$event.stopPropagation()">
+      <div class="wf-modal-header">
+        <div>
+          <h2 class="wf-modal-title">Ajouter une étape</h2>
+          <p class="wf-modal-subtitle">L'étape sera insérée en fin de parcours.</p>
+        </div>
+        <button type="button" class="wf-modal-close" (click)="closeAddModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="addForm" (ngSubmit)="submitAddEtape()">
+        @if (addError) {
+          <div class="wf-modal-alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ addError }}</span>
+          </div>
+        }
+
+        <div class="wf-form-group">
+          <label class="wf-label">Code technique unique (MAJUSCULES) <span class="required">*</span></label>
+          <input type="text" class="wf-select" formControlName="code" placeholder="Ex: ENREGISTREMENT_ACTES" />
+        </div>
+
+        <div class="wf-form-group">
+          <label class="wf-label">Libellé officiel de l'étape <span class="required">*</span></label>
+          <input type="text" class="wf-select" formControlName="libelle" placeholder="Ex: Enregistrement des actes" />
+        </div>
+
+        <div class="wf-form-row-2">
+          <div class="wf-form-group">
+            <label class="wf-label">Code organisme</label>
+            <input type="text" class="wf-select" formControlName="organismeCode" placeholder="Ex: DGI" />
+          </div>
+          <div class="wf-form-group">
+            <label class="wf-label">Libellé organisme</label>
+            <input type="text" class="wf-select" formControlName="organismeLibelle" placeholder="Ex: Direction Générale des Impôts" />
+          </div>
+        </div>
+
+        <div class="wf-form-row-2">
+          <div class="wf-form-group">
+            <label class="wf-label">Frais (MAD)</label>
+            <input type="number" min="0" step="10" class="wf-select" formControlName="fraisMad" />
+          </div>
+          <div class="wf-form-group">
+            <label class="wf-label">Durée indicative</label>
+            <input type="text" class="wf-select" formControlName="delaiIndicatif" placeholder="Ex: 2-3 jours" />
+          </div>
+        </div>
+
+        <div class="wf-form-group">
+          <label class="wf-label">Condition d'application</label>
+          <input type="text" class="wf-select" formControlName="conditionApplication" placeholder="Ex: Optionnel si pas de salariés" />
+        </div>
+
+        <div class="wf-checkbox-group">
+          <label class="wf-checkbox-label">
+            <input type="checkbox" formControlName="obligatoire" />
+            <span>Étape obligatoire</span>
+          </label>
+          <label class="wf-checkbox-label">
+            <input type="checkbox" formControlName="externe" />
+            <span>Étape partenaire externe (ex: Banque)</span>
+          </label>
+        </div>
+
+        <div class="wf-modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeAddModal()">Annuler</button>
+          <button type="submit" class="btn-submit" [disabled]="isSubmittingAdd || addForm.invalid">
+            @if (isSubmittingAdd) {
+              <span>Ajout...</span>
+            } @else {
+              <span>Ajouter l'étape</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODALE : CONFIRMATION SUPPRESSION D'ÉTAPE                      -->
+<!-- ============================================================== -->
+@if (isDeleteModalOpen && deletingEtape) {
+  <div class="wf-modal-backdrop" (click)="closeDeleteModal()">
+    <div class="wf-modal-card wf-confirm-card" (click)="$event.stopPropagation()">
+      <div class="wf-confirm-icon-box wf-confirm-danger">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+      <h3 class="wf-confirm-title">Supprimer l'étape ?</h3>
+      <p class="wf-confirm-desc">
+        Voulez-vous supprimer l'étape <strong>« {{ deletingEtape.libelle }} »</strong> ?
+        L'ordre des étapes suivantes sera automatiquement ajusté pour rester contigu.
+      </p>
+      <div class="wf-modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeDeleteModal()">Annuler</button>
+        <button type="button" class="btn-submit btn-danger" [disabled]="isSubmittingDelete" (click)="confirmDeleteEtape()">
+          <span>Supprimer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================== -->
+<!-- MODALE : CONFIRMATION PUBLICATION / ARCHIVAGE DEPUIS L'ÉDITEUR -->
+<!-- ============================================================== -->
+@if (isConfirmModalOpen) {
+  <div class="wf-modal-backdrop" (click)="closeConfirmModal()">
+    <div class="wf-modal-card wf-confirm-card" (click)="$event.stopPropagation()">
+      <div class="wf-confirm-icon-box" [class.wf-confirm-danger]="confirmAction === 'archive'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3 class="wf-confirm-title">
+        {{ confirmAction === 'publish' ? 'Publier cette version ?' : 'Archiver cette version ?' }}
+      </h3>
+      <p class="wf-confirm-desc">
+        @if (confirmAction === 'publish') {
+          Cette version v{{ version?.numeroVersion }} deviendra la version <strong>Active</strong>.
+          L'ancienne version Active passera en statut <strong>Archivée</strong>.
+          Les dossiers en cours conserveront leur configuration initiale (RG14).
+        } @else {
+          Cette version passera en statut <strong>Archivée</strong> et ne pourra plus être modifiée.
+        }
+      </p>
+      <div class="wf-modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeConfirmModal()">Annuler</button>
+        <button
+          type="button"
+          class="btn-submit"
+          [class.btn-danger]="confirmAction === 'archive'"
+          [disabled]="isSubmittingConfirm"
+          (click)="confirmActionSubmit()">
+          <span>{{ confirmAction === 'publish' ? 'Confirmer la publication' : 'Confirmer l\'archivage' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

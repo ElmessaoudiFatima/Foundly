@@ -1,0 +1,784 @@
+/* ===================================================================
+   Workflow Editor View — Design inspiré fidèlement de la maquette (Image 2)
+   Couleurs : Foundly Navy (#1F3864), Teal (#0D9488), Slate (#0F172A)
+   Aucun emoji — uniquement des icônes SVG vectorielles
+   =================================================================== */
+
+.wf-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ===== EN-TÊTE DE L'ÉDITEUR (Image 2) ===== */
+.wf-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+.wf-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+  width: fit-content;
+}
+
+.btn-back-link:hover {
+  color: #1F3864;
+  text-decoration: underline;
+}
+
+.wf-editor-main-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1E293B;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.wf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Bouton bleu marine style Foundly */
+.btn-create-workflow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1F3864;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(31, 56, 100, 0.2);
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.btn-create-workflow:hover {
+  background-color: #152747;
+  transform: translateY(-1px);
+}
+
+.btn-create-plus {
+  font-size: 17px;
+  font-weight: 400;
+}
+
+/* ===== BANDEAU INFO LECTURE SEULE ===== */
+.wf-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  color: #166534;
+}
+
+.wf-banner-info svg {
+  flex-shrink: 0;
+  color: #15803D;
+}
+
+/* ===== DISPOSITION EN 2 COLONNES (Image 2) ===== */
+.wf-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .wf-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================== */
+/* COLONNE GAUCHE : CARTES D'ÉTAPES (Image 2)                     */
+/* ============================================================== */
+.wf-steps-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wf-step-card {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) 90px 90px minmax(130px, 180px) auto;
+  align-items: center;
+  gap: 20px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.wf-step-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.wf-step-card-selected {
+  border-color: #0D9488 !important;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15) !important;
+  background-color: #FAFFFE;
+}
+
+/* 1. Prefix (Handle 6 points + Pastille numéro ronde) */
+.wf-step-prefix {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.wf-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  cursor: grab;
+  padding: 2px;
+}
+
+.wf-step-number-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #F1F5F9;
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 2. Infos principales (Code vert teal + Titre + Organisme) */
+.wf-step-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wf-step-tech-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0D9488;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.wf-step-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wf-step-org-subtitle {
+  font-size: 12.5px;
+  color: #64748B;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3-5. Colonnes métriques (Frais, Durée, Condition) */
+.wf-step-meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wf-meta-label {
+  font-size: 11px;
+  color: #94A3B8;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.wf-meta-value {
+  font-size: 13.5px;
+  color: #0F172A;
+}
+
+.wf-col-condition .wf-meta-value {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.font-medium {
+  font-weight: 600;
+}
+
+/* 6. Action Configurer (Crayon vert teal) */
+.wf-step-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-configure-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #0D9488;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-configure-step:hover {
+  background-color: #F0FDFA;
+  color: #0F766E;
+  text-decoration: underline;
+}
+
+/* Boutons micro de réordonnancement / suppression */
+.wf-quick-reorder {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.btn-micro-icon {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-micro-icon:hover:not(:disabled) {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.btn-micro-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-micro-delete:hover:not(:disabled) {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+/* ============================================================== */
+/* COLONNE DROITE : RÉSUMÉ DE LA VERSION (Image 2)                */
+/* ============================================================== */
+.wf-summary-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wf-summary-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.wf-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wf-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.wf-summary-item-label {
+  color: #64748B;
+}
+
+.wf-summary-item-val {
+  color: #0F172A;
+  text-align: right;
+}
+
+.wf-summary-divider {
+  border: none;
+  border-top: 1px solid #F1F5F9;
+  margin: 4px 0;
+}
+
+/* Bloc condition spécifique */
+.wf-specific-condition-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-condition-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.wf-condition-desc {
+  font-size: 12.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+  background-color: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* Badges de statut pill */
+.wf-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wf-dot-icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wf-pill-active {
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+.wf-dot-active {
+  background-color: #059669;
+}
+
+.wf-pill-brouillon {
+  background-color: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+.wf-dot-brouillon {
+  background-color: #D97706;
+}
+
+.wf-pill-archived {
+  background-color: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+.wf-dot-archived {
+  background-color: #94A3B8;
+}
+
+/* Actions dans le panneau latéral */
+.wf-sidebar-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-publish-wf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #0D9488;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.btn-publish-wf:hover {
+  background-color: #0F766E;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+}
+
+.btn-archive-wf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.btn-archive-wf:hover {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  border-color: #94A3B8;
+}
+
+/* Utilitaires typographiques */
+.font-bold {
+  font-weight: 700;
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ===== MODALES ET FORMULAIRES (Design System Foundly) ===== */
+.wf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.wf-modal-card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 28px;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.wf-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.wf-modal-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 4px 0;
+}
+
+.wf-modal-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+.wf-modal-subtitle code {
+  background-color: #F1F5F9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #0D9488;
+  font-size: 12px;
+}
+
+.wf-modal-close {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.wf-modal-close:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.wf-modal-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #DC2626;
+}
+
+.wf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.wf-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.wf-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.wf-label .required {
+  color: #EF4444;
+}
+
+.wf-select {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: #0F172A;
+  background-color: #FFFFFF;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.wf-select:focus {
+  outline: none;
+  border-color: #1F3864;
+  box-shadow: 0 0 0 3px rgba(31, 56, 100, 0.1);
+}
+
+.wf-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 12px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.wf-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.wf-checkbox-label input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #1F3864;
+}
+
+.wf-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+.btn-submit {
+  background-color: #1F3864;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #152747;
+}
+
+.btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background-color: #DC2626 !important;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #B91C1C !important;
+}
+
+/* Modale de confirmation */
+.wf-confirm-card {
+  max-width: 460px;
+  text-align: center;
+}
+
+.wf-confirm-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}
+
+.wf-confirm-danger {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+.wf-confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px 0;
+}
+
+.wf-confirm-desc {
+  font-size: 13.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wf-confirm-card .wf-modal-footer {
+  justify-content: center;
+}
+
+/* État vide & spinner */
+.wf-state-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 48px 24px;
+  color: #64748B;
+  font-size: 14px;
+}
+
+.wf-empty-card {
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.wf-spinner {
+  animation: wf-spin 0.8s linear infinite;
+}
+
+@keyframes wf-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
