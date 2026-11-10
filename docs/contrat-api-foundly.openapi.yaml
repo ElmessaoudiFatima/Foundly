@@ -13,7 +13,7 @@ info:
     - Un entrepreneur ne lit et ne modifie que ses propres dossiers.
     - Un agent ne peut traiter que l'étape courante rattachée à son organisme.
     - La validation ou le rejet crée un événement d'audit immuable et une notification.
-    - Les documents acceptés sont PDF ou JPG, de taille strictement inférieure à 5 Mo.
+    - Les documents acceptés sont PDF, JPG ou PNG, de taille strictement inférieure à 5 Mo.
     - Le paiement est une simulation : aucune transaction bancaire réelle n'est déclenchée.
     - Les PDF générés sont des modèles de démonstration et n'ont pas de valeur juridique.
   contact:
@@ -371,7 +371,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/ApiError'}
         '415':
-          description: Format autre que PDF ou JPG
+          description: Format autre que PDF, JPG ou PNG
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ApiError'}
@@ -389,6 +389,7 @@ paths:
           content:
             application/pdf: {schema: {type: string, format: binary}}
             image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
   /dossiers/{dossierId}/documents/{documentId}:
@@ -1111,7 +1112,7 @@ components:
         required: {type: boolean}
         acceptedMimeTypes:
           type: array
-          items: {type: string, enum: [application/pdf, image/jpeg]}
+          items: {type: string, enum: [application/pdf, image/jpeg, image/png]}
         submitted: {type: boolean}
         activeDocumentId: {type: string, format: uuid, nullable: true}
         correctionRequired: {type: boolean}
@@ -1123,7 +1124,7 @@ components:
         id: {type: string, format: uuid}
         documentTypeCode: {type: string}
         fileName: {type: string}
-        mimeType: {type: string, enum: [application/pdf, image/jpeg]}
+        mimeType: {type: string, enum: [application/pdf, image/jpeg, image/png]}
         sizeBytes: {type: integer, minimum: 1, maximum: 5242879}
         source: {type: string, enum: [UPLOADED, GENERATED]}
         uploadedAt: {type: string, format: date-time}

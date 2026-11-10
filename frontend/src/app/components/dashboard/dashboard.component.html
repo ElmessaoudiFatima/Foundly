@@ -1,145 +1,143 @@
 <div class="dashboard-page">
-  <!-- Navbar -->
   <header class="dash-navbar">
     <div class="dash-nav-inner">
-      <a routerLink="/" class="dash-brand">
-        <span class="logo-icon" aria-hidden="true">
-          <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#1F3864"/>
-            <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
-          </svg>
-        </span>
-        <span class="brand-name">Foundly</span>
-        <span class="dash-pill">{{ spaceTitle }}</span>
+      <a href="/" class="dash-brand" aria-label="Retour à l’accueil Foundly">
+        <svg width="31" height="31" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1F3864"/><path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/></svg>
+        <span class="brand-name">Foundly</span><span class="dash-pill">Espace Entrepreneur</span>
       </a>
 
       <div class="dash-nav-actions">
-        <div class="user-chip">
-          <div class="avatar-circle">
-            {{ user()?.firstName?.charAt(0) || 'U' }}{{ user()?.lastName?.charAt(0) || 'S' }}
-          </div>
-          <div class="user-meta">
-            <span class="user-fullname">{{ user()?.firstName }} {{ user()?.lastName }}</span>
-            <span class="user-role">{{ roleLabel }}</span>
-          </div>
-        </div>
-
-        <button type="button" class="btn btn-outline-danger" (click)="logout()" [disabled]="isLoggingOut">
-          @if (isLoggingOut) {
-            <span class="spinner-sm"></span>
-            <span>Déconnexion...</span>
-          } @else {
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            <span>Se déconnecter</span>
+        <div class="notification-wrap">
+          <button type="button" class="notification-button" (click)="toggleNotifications()" aria-label="Ouvrir les notifications">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            @if (unreadCount > 0) { <span class="notification-count">{{ unreadCount > 9 ? '9+' : unreadCount }}</span> }
+          </button>
+          @if (isNotificationsOpen) {
+            <section class="notification-panel" aria-label="Notifications">
+              <div class="notification-panel-head"><div><strong>Notifications</strong><span>{{ unreadCount }} non lue{{ unreadCount > 1 ? 's' : '' }}</span></div>@if (unreadCount > 0) { <button type="button" (click)="markAllNotificationsRead()">Tout lire</button> }</div>
+              <div class="notification-list">
+                @if (isLoadingNotifications) { <div class="panel-state">Chargement…</div> }
+                @else if (!notifications.length) { <div class="panel-state">Vous êtes à jour.</div> }
+                @else { @for (notification of notifications; track notification.id) { <button type="button" class="notification-item" [class.unread]="!notification.read" (click)="openNotification(notification)"><span class="notification-dot" aria-hidden="true"></span><span><strong>{{ notification.title }}</strong><small>{{ notification.body }}</small><time>{{ formatDate(notification.createdAt) }}</time></span></button> } }
+              </div>
+            </section>
           }
-        </button>
+        </div>
+        <div class="user-chip"><div class="avatar-circle">{{ userInitials }}</div><div class="user-meta"><span class="user-fullname">{{ user()?.firstName }} {{ user()?.lastName }}</span><span class="user-role">Entrepreneur</span></div></div>
+        <button type="button" class="logout-button" (click)="logout()" [disabled]="isLoggingOut">{{ isLoggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</button>
       </div>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="dash-main">
-    <div class="dash-container">
+  <main class="dash-main"><div class="dash-container">
+    @if (toastMessage) { <div class="dash-toast" role="status">{{ toastMessage }}</div> }
 
-      <!-- Toast notice -->
-      @if (toastMessage) {
-        <div class="dash-toast">{{ toastMessage }}</div>
-      }
-
-      <!-- Welcome Banner -->
+    @if (view === 'list') {
       <section class="welcome-card">
-        <div class="welcome-content">
-          <div class="badge-status">
-            <span class="status-dot"></span> Compte actif &bull; {{ roleLabel }}
-          </div>
-          <h1 class="welcome-title">Bienvenue, {{ user()?.firstName }} {{ user()?.lastName }} !</h1>
-          <p class="welcome-desc">
-            Vous êtes connecté sur votre {{ spaceTitle.toLowerCase() }}. Suivez l'avancement de vos démarches administratives et accédez à vos services en toute simplicité.
-          </p>
-        </div>
-        <div class="welcome-actions">
-          @if (user()?.role === 'ADMINISTRATEUR') {
-            <a routerLink="/admin" class="btn btn-primary" style="background: #0D9488; border-color: #0D9488;">
-              Accéder au pilotage Admin &rarr;
-            </a>
-          } @else {
-            <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Nouveau dossier')">
-              + Nouveau dossier
-            </button>
-          }
-          <a routerLink="/" fragment="simulateur" class="btn btn-secondary">
-            Simuler une forme juridique
-          </a>
-        </div>
+        <div class="welcome-content"><span class="badge-status"><span class="status-dot"></span> Votre guichet unique est actif</span><h1>Bonjour, {{ user()?.firstName }}.</h1><p>Créez votre dossier, rassemblez vos pièces et suivez chaque formalité de votre entreprise depuis un seul espace.</p></div>
+        <button type="button" class="btn btn-white btn-large" (click)="openCreateWizard()">+ Créer un dossier</button>
       </section>
 
-      <!-- Profile Summary Cards -->
-      <section class="profile-cards-grid">
-        <div class="info-card">
-          <div class="info-card-header">
-            <span class="info-label">Identité</span>
-            <span class="info-icon">👤</span>
-          </div>
-          <div class="info-value">{{ user()?.firstName }} {{ user()?.lastName }}</div>
-          <div class="info-sub">Compte enregistré sur la plateforme</div>
-        </div>
-
-        <div class="info-card">
-          <div class="info-card-header">
-            <span class="info-label">Adresse e-mail</span>
-            <span class="info-icon">✉️</span>
-          </div>
-          <div class="info-value text-truncate">{{ user()?.email }}</div>
-          <div class="info-sub">Identifiant principal de connexion</div>
-        </div>
-
-        <div class="info-card">
-          <div class="info-card-header">
-            <span class="info-label">Numéro de CIN</span>
-            <span class="info-icon">🪪</span>
-          </div>
-          <div class="info-value font-mono">{{ user()?.cinMasked || 'Non renseigné' }}</div>
-          <div class="info-sub">Masqué pour protéger votre confidentialité</div>
-        </div>
-
-        <div class="info-card">
-          <div class="info-card-header">
-            <span class="info-label">Téléphone</span>
-            <span class="info-icon">📱</span>
-          </div>
-          <div class="info-value">{{ user()?.phone || 'Non renseigné' }}</div>
-          <div class="info-sub">Notifications & alertes de suivi</div>
-        </div>
+      <section class="summary-grid" aria-label="Résumé des démarches">
+        <article><span class="summary-icon blue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8.5L19 8.25v12H6z"/><path d="M14 3.75v4.5h5M9 12h6M9 15.5h6"/></svg></span><div><small>Dossiers créés</small><strong>{{ dossierTotalElements }}</strong></div></article>
+        <article><span class="summary-icon amber"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 7.75V12l3 2"/></svg></span><div><small>À compléter</small><strong>{{ shownActionableCount }}</strong></div></article>
+        <article><span class="summary-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="m8.5 12 2.35 2.35L15.9 9.4"/></svg></span><div><small>Finalisés</small><strong>{{ shownFinalizedCount }}</strong></div></article>
       </section>
 
-      <!-- Steps Overview -->
       <section class="dossiers-section">
-        <div class="section-title-row">
-          <h2 class="section-h2">Mes démarches de création d'entreprise</h2>
-          <span class="badge-counter">0 dossier en cours</span>
-        </div>
-
-        <div class="empty-dossier-card">
-          <div class="empty-icon-wrap">📁</div>
-          <h3 class="empty-title">Aucun dossier de création démarré</h3>
-          <p class="empty-desc">
-            Choisissez la forme juridique adaptée à votre projet (Auto-Entrepreneur, SARL-AU, SARL ou SA) et lancez votre guichet unique dès aujourd'hui.
-          </p>
-          <div class="empty-actions">
-            <button type="button" class="btn btn-primary" (click)="showFeatureNotice('Création de dossier')">
-              Démarrer mon premier dossier
-            </button>
-            <a routerLink="/" class="btn btn-outline">
-              Revoir la présentation du service
-            </a>
-          </div>
-        </div>
+        <div class="section-title-row"><div><span class="section-kicker">Mes démarches</span><h2>Mes dossiers de création</h2></div><label class="filter-select">Statut<select [(ngModel)]="dossierStatusFilter" (change)="changeFilter()"><option value="ALL">Tous les statuts</option><option value="BROUILLON">Brouillon</option><option value="A_CORRIGER">À corriger</option><option value="SOUMIS">Soumis</option><option value="EN_COURS">En cours</option><option value="FINALISE">Finalisé</option></select></label></div>
+        @if (isLoadingDossiers) { <div class="loading-card">Chargement de vos dossiers…</div> }
+        @else if (!dossiers.length) { <div class="empty-dossier-card"><div class="empty-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h6l1.7 2H20.5v8.25A2.25 2.25 0 0 1 18.25 20h-12A2.25 2.25 0 0 1 4 17.75V9.5"/><path d="M3.5 7.5V6.25A2.25 2.25 0 0 1 5.75 4h4.4l1.7 2h6.4a2.25 2.25 0 0 1 2.25 2.25v1.25"/></svg></div><h3>Aucun dossier pour le moment</h3><p>Lancez votre première démarche : Foundly vous guidera à chaque étape.</p><button type="button" class="btn btn-primary" (click)="openCreateWizard()">Démarrer mon dossier</button></div> }
+        @else {
+          <div class="dossiers-grid">@for (dossier of dossiers; track dossier.id) { <article class="dossier-card" [class.needs-correction]="dossier.status === 'A_CORRIGER'"><div class="dossier-top"><span class="legal-form-chip">{{ legalFormLabel(dossier.legalFormCode) }}</span><span class="status-chip" [class]="'status-' + dossier.status.toLowerCase()">{{ statusLabel(dossier.status) }}</span></div><h3>{{ dossier.proposedCompanyName || 'Entreprise en préparation' }}</h3><span class="reference">{{ dossier.reference }}</span><div class="dossier-meta"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10.25c0 5-7 9.25-7 9.25s-7-4.25-7-9.25a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10.25" r="2.25"/></svg>{{ dossier.region }}</span><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 7.75V12l3 2"/></svg>{{ dossier.currentStep?.label || 'Préparation du dossier' }}</span></div><div class="progress-info"><span>Avancement</span><strong>{{ dossier.progressionPercentage }}%</strong></div><div class="progress-track"><span [style.width.%]="dossier.progressionPercentage"></span></div>@if (dossier.status === 'A_CORRIGER' && dossier.rejectionReason) { <p class="rejection-preview">À corriger : {{ dossier.rejectionReason }}</p> }<button type="button" class="card-link" (click)="openDossier(dossier.id)">Voir le dossier <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></article> }</div>
+          @if (dossierTotalPages > 1) { <div class="pagination"><button type="button" (click)="changePage(-1)" [disabled]="dossierPage === 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>Précédent</button><span>Page {{ dossierPage + 1 }} sur {{ dossierTotalPages }}</span><button type="button" (click)="changePage(1)" [disabled]="dossierPage + 1 >= dossierTotalPages">Suivant<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div> }
+        }
       </section>
+    } @else {
+      <button type="button" class="back-link" (click)="backToList()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h11"/></svg>Retour à mes dossiers</button>
+      @if (isLoadingDetail || !selectedDossier) { <div class="loading-card">Ouverture de votre dossier…</div> }
+      @else {
+        <section class="detail-hero"><div><div class="detail-eyebrow"><span class="legal-form-chip light">{{ legalFormLabel(selectedDossier.legalFormCode) }}</span><span class="status-chip" [class]="'status-' + selectedDossier.status.toLowerCase()">{{ statusLabel(selectedDossier.status) }}</span></div><h1>{{ selectedDossier.proposedCompanyName || 'Entreprise en préparation' }}</h1><p>{{ selectedDossier.reference }} · {{ selectedDossier.region }} · Créé le {{ formatDate(selectedDossier.createdAt) }}</p></div><div class="detail-actions">@if (editableDossier) { <button type="button" class="btn btn-white" (click)="openEditWizard()">Modifier</button><button type="button" class="btn btn-hero-outline" [disabled]="isSubmitting" (click)="submitDossier()">{{ isSubmitting ? 'Envoi…' : selectedDossier.status === 'A_CORRIGER' ? 'Envoyer mes corrections' : 'Soumettre le dossier' }}</button> }</div></section>
+        @if (selectedDossier.status === 'A_CORRIGER') { <section class="correction-alert"><span class="alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4.5M12 16h.01"/><path d="M10.1 4.7 3.7 16a2 2 0 0 0 1.74 3h13.12a2 2 0 0 0 1.74-3L13.9 4.7a2.18 2.18 0 0 0-3.8 0Z"/></svg></span><div><strong>Des corrections sont demandées</strong><p>{{ selectedDossier.rejectionReason || 'Consultez les documents signalés puis renvoyez votre dossier.' }}</p></div></section> }
 
+        <section class="progress-card"><div class="progress-card-head"><div><span class="section-kicker">Suivi en temps réel</span><h2>{{ selectedDossier.progressionPercentage }}% du parcours réalisé</h2></div><span>{{ selectedDossier.steps.length }} étapes</span></div><div class="large-progress"><span [style.width.%]="selectedDossier.progressionPercentage"></span></div><div class="steps-timeline">@for (step of selectedDossier.steps; track step.id) { <article class="step-item" [class]="'step-' + step.status.toLowerCase()"><span class="step-marker">@if (step.status === 'VALIDEE') { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 12 3 3 6-6"/></svg> } @else { {{ step.order }} }</span><div><div class="step-heading"><strong>{{ step.label }}</strong><span>{{ stepStatusLabel(step.status) }}</span></div><p>{{ step.organizationName || 'Guichet Foundly' }}@if (step.indicativeDurationDays) { · délai indicatif : {{ step.indicativeDurationDays }} j }</p>@if (step.rejectionReason) { <p class="step-rejection">{{ step.rejectionReason }}</p> }@if (step.paymentRequired) { <div class="payment-callout">@if (hasConfirmedPayment(step.id)) { <span class="paid-status"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="m8.5 12 2.35 2.35L15.9 9.4"/></svg>Frais réglés</span> } @else { <span>Frais : {{ formatMoney(step.feeMad) }}</span><button type="button" (click)="startPayment(step)" [disabled]="isStartingPayment || step.status !== 'EN_COURS'">{{ isStartingPayment ? 'Initialisation…' : 'Payer les frais' }}</button> }</div> }</div></article> }</div></section>
+
+        <div class="detail-grid">
+          <section class="content-card checklist-card"><div class="card-heading"><div><span class="section-kicker">Pièces justificatives</span><h2>Checklist documentaire</h2><p>{{ isLoadingChecklist ? 'Actualisation…' : pendingDocumentsCount ? pendingDocumentsCount + ' pièce(s) obligatoire(s) manquante(s)' : 'Toutes les pièces requises sont déposées.' }}</p></div><span class="completion-ring">{{ selectedDossier.checklistCompletionRate }}%</span></div>
+            <div class="document-list">
+              @for (item of checklist; track item.documentTypeCode) {
+                <article class="document-row" [class.missing]="!item.submitted" [class.correction]="item.correctionRequired" (drop)="onFileDropped(item, $event)" (dragover)="$event.preventDefault()">
+                  <div class="document-state">
+                    @if (item.submitted) { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 12 3 3 6-6"/></svg> }
+                    @else { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5m0 0-4 4m4-4 4 4M5 15.5v2.25A1.25 1.25 0 0 0 6.25 19h11.5A1.25 1.25 0 0 0 19 17.75V15.5"/></svg> }
+                  </div>
+                  <div class="document-main">
+                    <strong>{{ item.label }}</strong>
+                    <small>{{ item.required ? 'Obligatoire' : 'Optionnelle' }} · PDF, JPG ou PNG, 5 Mo max</small>
+                    @if (item.correctionRequired && item.correctionReason) { <p class="document-correction">Correction demandée : {{ item.correctionReason }}</p> }
+                    @if (item.submitted) { <span class="document-name">{{ item.activeDocumentName }}</span> }
+                    @if (!item.submitted && ((item.documentTypeCode === 'STATUTS_SIGNES' && canGenerateStatuts) || (item.documentTypeCode === 'FORMULAIRE_UNIQUE' && canGenerateFormulaireCri))) {
+                      <small class="document-template-hint">Modèle pré-rempli disponible : vérifiez-le, signez-le, puis déposez la version finale.</small>
+                    }
+                  </div>
+                  <div class="document-actions">
+                    @if (item.submitted && item.activeDocumentId) {
+                      <button type="button" class="icon-action" title="Télécharger" aria-label="Télécharger le document" (click)="downloadDocument(item.activeDocumentId, item.activeDocumentName || item.label)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0-4-4m4 4 4-4M5 16.5v1.25A1.25 1.25 0 0 0 6.25 19h11.5A1.25 1.25 0 0 0 19 17.75V16.5"/></svg></button>
+                      @if (editableDossier) { <button type="button" class="icon-action danger" title="Supprimer" aria-label="Supprimer le document" (click)="requestDocumentDeletion(item)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14m-9-3h4m-7 3 .7 12h8.6L17 7M10 11v4m4-4v4"/></svg></button> }
+                    }
+                    @if (!item.submitted && editableDossier) {
+                      @if (item.documentTypeCode === 'STATUTS_SIGNES' && canGenerateStatuts) {
+                        <button type="button" class="generate-action" title="Générer un modèle de statuts pré-rempli" (click)="generateDocument('STATUTS')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8.5L19 8.25v12H6z"/><path d="M14 3.75v4.5h5M9 12h6M9 15.5h6"/></svg>Générer</button>
+                      }
+                      @if (item.documentTypeCode === 'FORMULAIRE_UNIQUE' && canGenerateFormulaireCri) {
+                        <button type="button" class="generate-action" title="Générer le formulaire CRI pré-rempli" (click)="generateDocument('FORMULAIRE_UNIQUE')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8.5L19 8.25v12H6z"/><path d="M14 3.75v4.5h5M9 12h6M9 15.5h6"/></svg>Générer</button>
+                      }
+                      <label class="upload-action"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5m0 0-4 4m4-4 4 4M5 15.5v2.25A1.25 1.25 0 0 0 6.25 19h11.5A1.25 1.25 0 0 0 19 17.75V15.5"/></svg>Déposer<input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="onFileSelected(item, $event)"></label>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+          <aside class="side-stack"><section class="content-card"><span class="section-kicker">Informations</span><h2>Votre entreprise</h2><dl class="company-details"><div><dt>Forme juridique</dt><dd>{{ legalFormLabel(selectedDossier.legalFormCode) }}</dd></div><div><dt>Capital social</dt><dd>{{ formatMoney(selectedDossier.capitalAmountMad) }}</dd></div><div><dt>Siège social</dt><dd>{{ selectedDossier.headOfficeAddress || 'À renseigner' }}</dd></div><div><dt>Activité</dt><dd>{{ selectedDossier.activityDescription || 'À renseigner' }}</dd></div></dl>@if (selectedDossier.capitalBlockageRequired) { <p class="capital-note">Le blocage du capital est requis pour ce dossier.</p> }</section><section class="content-card"><span class="section-kicker">Règlements</span><h2>Paiements simulés</h2>@if (!payments.length) { <p class="empty-inline">Aucun paiement à afficher.</p> } @else { <div class="payment-list">@for (payment of payments; track payment.id) { <article><div><strong>{{ formatMoney(payment.amountMad) }}</strong><small>{{ payment.stepLabel }}</small><small>{{ payment.status === 'CONFIRME' ? 'Confirmé' : 'En attente' }}</small></div>@if (payment.status === 'CONFIRME') { <button type="button" (click)="downloadReceipt(payment)">Reçu PDF</button> }</article> }</div> }</section></aside>
+        </div>
+        <section class="content-card history-card"><div class="card-heading"><div><span class="section-kicker">Traçabilité</span><h2>Historique du dossier</h2></div></div>@if (isLoadingAudit) { <p class="empty-inline">Chargement de l’historique…</p> } @else if (!auditEvents.length) { <p class="empty-inline">Les actions importantes sur votre dossier apparaîtront ici.</p> } @else { <div class="audit-list">@for (event of auditEvents; track event.id) { <article><span class="audit-dot"></span><div><strong>{{ event.details || event.action }}</strong><p>{{ event.actorNom }} · {{ formatDate(event.occurredAt) }}</p>@if (event.reason) { <small>{{ event.reason }}</small> }</div></article> }</div> }</section>
+      }
+    }
+  </div></main>
+
+  @if (isWizardOpen) {
+    <div class="modal-backdrop" (click)="closeWizard()">
+      <section class="modal wizard-modal" (click)="$event.stopPropagation()">
+        <header class="modal-header"><div><span class="section-kicker">{{ wizardMode === 'create' ? 'Création guidée' : 'Mise à jour' }}</span><h2>{{ draftLabel }}</h2></div><button type="button" class="modal-close" aria-label="Fermer" (click)="closeWizard()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></header>
+        <div class="wizard-progress"><span [class.active]="wizardStep >= 1">1. Forme</span><i></i><span [class.active]="wizardStep >= 2">2. Informations</span><i></i><span [class.active]="wizardStep >= 3">3. Vérification</span></div>
+        <div class="modal-body">
+          @if (wizardStep === 1) {
+            <div><h3>Choisissez une forme juridique</h3><p class="modal-intro">Le parcours, les pièces demandées et les règles applicables s’adapteront automatiquement à ce choix.</p><div class="legal-forms-grid">@for (form of legalForms; track form.code) { <button type="button" class="legal-form-choice" [class.selected]="dossierForm.legalFormCode === form.code" [disabled]="!canChangeLegalForm" (click)="chooseLegalForm(form.code)"><span class="legal-form-icon">@if (form.code === 'AUTO_ENTREPRENEUR') { <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5.5 19c.75-3.25 3-5 6.5-5s5.75 1.75 6.5 5M16.5 5.5h2.25v2.25M18.75 5.5 15.5 8.75"/></svg> } @else if (form.code === 'SA') { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9h12v11M4 9h16L12 4 4 9M9 12v5m3-5v5m3-5v5"/></svg> } @else { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V7h12v13M8 10h2m4 0h2M8 14h2m4 0h2M10 20v-3h4v3"/></svg> }</span><strong>{{ form.title }}</strong><small>{{ form.summary }}</small></button> }</div><div class="workflow-preview"><div class="workflow-preview-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="7" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="17" cy="17.5" r="1" fill="currentColor"/></svg><div><strong>{{ selectedWorkflowPreview.title }}</strong><small>{{ selectedWorkflowPreview.rule }}</small></div></div><ol>@for (step of selectedWorkflowPreview.steps; track $index) { <li>{{ step }}</li> }</ol></div>@if (!canChangeLegalForm) { <p class="form-hint">La forme juridique n’est plus modifiable après la première soumission.</p> }</div>
+          } @else if (wizardStep === 2) {
+            <div class="form-grid"><label class="field full"><span>{{ isAutoEntrepreneur ? 'Nom commercial envisagé' : 'Nom envisagé de l’entreprise' }} <b>*</b></span><input [(ngModel)]="dossierForm.proposedCompanyName" maxlength="200" placeholder="Ex. Atlas Conseil SARL" /></label><label class="field"><span>Région d’implantation <b>*</b></span><select [(ngModel)]="dossierForm.region"><option value="">Sélectionnez une région</option>@for (region of regions; track region) { <option [value]="region">{{ region }}</option> }</select></label>@if (!isAutoEntrepreneur) { <label class="field"><span>Capital social (MAD)</span><input type="number" min="0" [(ngModel)]="dossierForm.capitalAmountMad" /></label> } @else { <div class="capital-free-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg><span>Aucun capital social requis</span></div> }<p class="capital-rule full"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg>{{ capitalRuleHint }}</p><label class="field full"><span>Adresse du siège social</span><input [(ngModel)]="dossierForm.headOfficeAddress" maxlength="500" placeholder="Adresse complète du siège envisagé" /></label><label class="field full"><span>Description de l’activité</span><textarea [(ngModel)]="dossierForm.activityDescription" maxlength="1000" rows="4" placeholder="Décrivez brièvement l’activité principale…"></textarea></label></div>
+          } @else {
+            <div><div class="review-panel"><div><span>Forme juridique</span><strong>{{ legalFormLabel(dossierForm.legalFormCode) }}</strong></div><div><span>Entreprise</span><strong>{{ dossierForm.proposedCompanyName }}</strong></div><div><span>Région</span><strong>{{ dossierForm.region }}</strong></div><div><span>Capital</span><strong>{{ formatMoney(dossierForm.capitalAmountMad) }}</strong></div><div class="review-wide"><span>Activité</span><strong>{{ dossierForm.activityDescription || 'Non renseignée' }}</strong></div></div>@if (wizardMode === 'create') { <p class="review-note">Votre dossier sera créé comme brouillon. Vous pourrez ensuite déposer les pièces demandées avant de le soumettre.</p> } @else { <p class="review-note">Les changements seront enregistrés immédiatement dans votre dossier.</p> }</div>
+          }
+          @if (formError) { <p class="form-error">{{ formError }}</p> }
+        </div>
+        <footer class="modal-footer">@if (wizardStep > 1) { <button type="button" class="btn btn-outline" (click)="previousWizardStep()">Retour</button> } @else { <span></span> }@if (wizardStep < 3) { <button type="button" class="btn btn-primary" (click)="nextWizardStep()">Continuer →</button> } @else { <button type="button" class="btn btn-primary" [disabled]="isSavingDossier" (click)="saveDossier()">{{ isSavingDossier ? 'Enregistrement…' : wizardMode === 'create' ? 'Créer mon dossier' : 'Enregistrer les modifications' }}</button> }</footer>
+      </section>
     </div>
-  </main>
+  }
+
+  @if (uploadTarget && uploadFile) { <div class="modal-backdrop"><section class="modal upload-modal"><header class="modal-header"><div><span class="section-kicker">Dépôt de document</span><h2>{{ uploadTarget.label }}</h2></div><button type="button" class="modal-close" aria-label="Fermer" (click)="cancelUpload()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></header><div class="modal-body"><div class="selected-file"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8.5L19 8.25v12H6z"/><path d="M14 3.75v4.5h5M9 12h6M9 15.5h4"/></svg></span><div><strong>{{ uploadFile.name }}</strong><small>{{ (uploadFile.size / 1024 / 1024).toFixed(2) }} Mo</small></div></div><label class="field"><span>Note pour l’agent <em>(facultative)</em></span><textarea [(ngModel)]="uploadNote" rows="3" placeholder="Ajoutez un contexte utile si nécessaire…"></textarea></label>@if (uploadError) { <p class="form-error">{{ uploadError }}</p> }</div><footer class="modal-footer"><button type="button" class="btn btn-outline" (click)="cancelUpload()">Annuler</button><button type="button" class="btn btn-primary" [disabled]="isUploading" (click)="uploadDocument()">{{ isUploading ? 'Dépôt en cours…' : 'Déposer le document' }}</button></footer></section></div> }
+
+  @if (isPaymentModalOpen && paymentToConfirm) { <div class="modal-backdrop"><section class="modal payment-modal"><header class="modal-header"><div><span class="section-kicker">Paiement simulé sécurisé</span><h2>{{ formatMoney(paymentToConfirm.amountMad) }}</h2><p>{{ paymentStep?.label }}</p></div><button type="button" class="modal-close" aria-label="Fermer" (click)="closePaymentModal()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></header><div class="modal-body"><p class="payment-demo-notice">Mode démonstration : aucune transaction réelle ne sera effectuée.</p><div class="form-grid"><label class="field full"><span>Numéro de carte</span><input [(ngModel)]="paymentForm.cardNumber" inputmode="numeric" maxlength="19" placeholder="4111 1111 1111 1111" /></label><label class="field full"><span>Nom du titulaire</span><input [(ngModel)]="paymentForm.cardHolder" placeholder="Prénom NOM" /></label><label class="field"><span>Expiration</span><input [(ngModel)]="paymentForm.expirationDate" maxlength="5" placeholder="MM/AA" /></label><label class="field"><span>CVV</span><input [(ngModel)]="paymentForm.cvv" inputmode="numeric" maxlength="4" placeholder="123" /></label></div>@if (paymentError) { <p class="form-error">{{ paymentError }}</p> }</div><footer class="modal-footer"><button type="button" class="btn btn-outline" (click)="closePaymentModal()">Annuler</button><button type="button" class="btn btn-primary" [disabled]="isConfirmingPayment" (click)="confirmPayment()">{{ isConfirmingPayment ? 'Validation…' : 'Confirmer le paiement' }}</button></footer></section></div> }
+
+  @if (documentToDelete) {
+    <div class="modal-backdrop confirmation-backdrop" (click)="cancelDocumentDeletion()">
+      <section class="modal confirmation-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-document-title" (click)="$event.stopPropagation()">
+        <div class="confirmation-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14m-9-3h4m-7 3 .7 12h8.6L17 7M10 11v4m4-4v4"/></svg></div>
+        <h2 id="delete-document-title">Supprimer ce document&nbsp;?</h2>
+        <p>Vous allez supprimer <strong>«&nbsp;{{ documentToDelete.activeDocumentName || documentToDelete.label }}&nbsp;»</strong>. Cette action retirera la pièce de la checklist.</p>
+        <div class="confirmation-actions"><button type="button" class="btn btn-outline" [disabled]="isDeletingDocument" (click)="cancelDocumentDeletion()">Conserver le document</button><button type="button" class="btn btn-danger" [disabled]="isDeletingDocument" (click)="confirmDocumentDeletion()">{{ isDeletingDocument ? 'Suppression…' : 'Oui, supprimer' }}</button></div>
+      </section>
+    </div>
+  }
 </div>

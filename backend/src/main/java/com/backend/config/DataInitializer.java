@@ -173,12 +173,11 @@ public class DataInitializer {
             wf.setStatut(WorkflowStatus.ACTIVE);
             wf.setDescription("Circuit Auto-Entrepreneur - loi 114-13, sans capital ni certificat negatif");
             wf = wfRepo.save(wf);
-            seedEtape(etapeRepo, wf, 1, "CREATION_COMPTE", "Creation de compte (rn.ae.gov.ma)", null, "Systeme", BigDecimal.ZERO, "Immediat", null, true, false);
-            seedEtape(etapeRepo, wf, 2, "FORMULAIRE_INSCRIPTION", "Formulaire d'inscription (etat civil, activite)", null, "Systeme", BigDecimal.ZERO, "15 min", null, true, false);
-            seedEtape(etapeRepo, wf, 3, "DEPOT_DOSSIER", "Depot du dossier signe", "BARID", "Barid Al-Maghrib", BigDecimal.ZERO, "Variable", null, true, false);
-            seedEtape(etapeRepo, wf, 4, "EXAMEN_DOSSIER", "Examen du dossier", "RNAE", "Registre National Auto-Entrepreneur", BigDecimal.ZERO, "48-72h", null, true, false);
-            seedEtape(etapeRepo, wf, 5, "ATTRIBUTION_NUMERO", "Attribution numero RNAE/ICE + carte", "RNAE", "Registre National Auto-Entrepreneur", BigDecimal.ZERO, "48-72h", null, true, false);
-            seedEtape(etapeRepo, wf, 6, "AFFILIATION_CNSS", "Affiliation CNSS/AMO", "CNSS", "CNSS", BigDecimal.ZERO, "1-2 jours", null, true, false);
+            // RG3 : parcours allégé, sans certificat négatif, statuts, capital ni RC.
+            seedEtape(etapeRepo, wf, 1, "VERIFICATION_ELIGIBILITE", "Vérification de l'éligibilité au statut Auto-Entrepreneur", "CRI", "CRI", BigDecimal.ZERO, "1 jour", null, true, false);
+            seedEtape(etapeRepo, wf, 2, "FORMULAIRE_INSCRIPTION", "Dépôt du formulaire RNAE et justificatifs", null, "Entrepreneur", BigDecimal.ZERO, "1 jour", null, true, false);
+            seedEtape(etapeRepo, wf, 3, "VALIDATION_POSTE_MAROC", "Validation d'identité et de conformité", "CRI", "CRI", BigDecimal.ZERO, "2 jours", null, true, false);
+            seedEtape(etapeRepo, wf, 4, "DELIVRANCE_CARTE", "Attribution de l'identifiant et délivrance de la carte", "DGI", "DGI", BigDecimal.ZERO, "2 jours", null, true, false);
             log.info("Workflow AUTO_ENTREPRENEUR v1.0 cree");
         }
 
@@ -190,14 +189,7 @@ public class DataInitializer {
             wf.setStatut(WorkflowStatus.ACTIVE);
             wf.setDescription("Circuit SARL - 8 etapes standard");
             wf = wfRepo.save(wf);
-            seedEtape(etapeRepo, wf, 1, "CERTIFICAT_NEGATIF", "Certificat negatif", "OMPIC", "OMPIC", new BigDecimal("230"), "24-48h", null, true, false);
-            seedEtape(etapeRepo, wf, 2, "PREPARATION_STATUTS", "Preparation des statuts", null, "Foundly/Systeme", BigDecimal.ZERO, "1 jour", null, true, false);
-            seedEtape(etapeRepo, wf, 3, "BLOCAGE_CAPITAL", "Blocage du capital en banque", null, "Banque partenaire externe", BigDecimal.ZERO, "1-2 jours", "SARL dont capital > 100 000 MAD", false, true);
-            seedEtape(etapeRepo, wf, 4, "DEPOT_CRI", "Depot et controle CRI", "CRI", "CRI", new BigDecimal("1000"), "2-4 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 5, "IMMATRICULATION_RC", "Immatriculation au Registre de commerce", "TRIBUNAL", "Tribunal de commerce", new BigDecimal("350"), "1-2 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 6, "IDENTIFIANT_FISCAL", "Identifiant fiscal et taxe professionnelle", "DGI", "DGI", BigDecimal.ZERO, "2-3 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 7, "AFFILIATION_CNSS_SARL", "Affiliation CNSS", "CNSS", "CNSS", BigDecimal.ZERO, "1-2 jours", "Si salaries declares", false, false);
-            seedEtape(etapeRepo, wf, 8, "PUBLICATION_LEGALE", "Publication legale", "JOURNAL", "Journal d'annonces legales / Bulletin Officiel", BigDecimal.ZERO, "2-5 jours", null, true, false);
+            seedSocietyWorkflow(etapeRepo, wf, "SARL dont capital > 100 000 MAD", false);
             log.info("Workflow SARL v1.0 cree");
         }
 
@@ -209,14 +201,7 @@ public class DataInitializer {
             wf.setStatut(WorkflowStatus.ACTIVE);
             wf.setDescription("Circuit SARL-AU (associe unique) - 8 etapes identiques a SARL");
             wf = wfRepo.save(wf);
-            seedEtape(etapeRepo, wf, 1, "CERTIFICAT_NEGATIF_SAU", "Certificat negatif", "OMPIC", "OMPIC", new BigDecimal("230"), "24-48h", null, true, false);
-            seedEtape(etapeRepo, wf, 2, "PREPARATION_STATUTS_SAU", "Preparation des statuts", null, "Foundly/Systeme", BigDecimal.ZERO, "1 jour", null, true, false);
-            seedEtape(etapeRepo, wf, 3, "BLOCAGE_CAPITAL_SAU", "Blocage du capital en banque", null, "Banque partenaire externe", BigDecimal.ZERO, "1-2 jours", "SARL-AU dont capital > 100 000 MAD", false, true);
-            seedEtape(etapeRepo, wf, 4, "DEPOT_CRI_SAU", "Depot et controle CRI", "CRI", "CRI", new BigDecimal("1000"), "2-4 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 5, "IMMATRICULATION_RC_SAU", "Immatriculation au Registre de commerce", "TRIBUNAL", "Tribunal de commerce", new BigDecimal("350"), "1-2 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 6, "IDENTIFIANT_FISCAL_SAU", "Identifiant fiscal et taxe professionnelle", "DGI", "DGI", BigDecimal.ZERO, "2-3 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 7, "AFFILIATION_CNSS_SAU", "Affiliation CNSS", "CNSS", "CNSS", BigDecimal.ZERO, "1-2 jours", "Si salaries declares", false, false);
-            seedEtape(etapeRepo, wf, 8, "PUBLICATION_LEGALE_SAU", "Publication legale", "JOURNAL", "Journal d'annonces legales / Bulletin Officiel", BigDecimal.ZERO, "2-5 jours", null, true, false);
+            seedSocietyWorkflow(etapeRepo, wf, "SARL-AU dont capital > 100 000 MAD", false);
             log.info("Workflow SARL_AU v1.0 cree");
         }
 
@@ -226,20 +211,28 @@ public class DataInitializer {
             wf.setFormeJuridique(LegalFormCode.SA);
             wf.setNumeroVersion("1.0");
             wf.setStatut(WorkflowStatus.ACTIVE);
-            wf.setDescription("Circuit SA - 10 etapes, capital min. 300 000 MAD");
+            wf.setDescription("Circuit SA - 8 étapes standard, avec blocage du capital obligatoire");
             wf = wfRepo.save(wf);
-            seedEtape(etapeRepo, wf, 1, "CERTIFICAT_NEGATIF_SA", "Certificat negatif", "OMPIC", "OMPIC", new BigDecimal("230"), "24-48h", null, true, false);
-            seedEtape(etapeRepo, wf, 2, "REDACTION_STATUTS_SA", "Redaction des statuts SA", null, "Foundly/Systeme", BigDecimal.ZERO, "Variable", null, true, false);
-            seedEtape(etapeRepo, wf, 3, "BULLETINS_SOUSCRIPTION", "Bulletins de souscription, PV CA et designation commissaire aux comptes", null, "Foundly/Systeme", BigDecimal.ZERO, "Variable", null, true, false);
-            seedEtape(etapeRepo, wf, 4, "BLOCAGE_CAPITAL_SA", "Blocage du capital (min. 25% de 300 000 MAD)", null, "Banque partenaire externe", BigDecimal.ZERO, "1-2 jours", "SA - capital minimum 300 000 MAD requis", true, true);
-            seedEtape(etapeRepo, wf, 5, "DEPOT_CRI_SA", "Depot et controle CRI", "CRI", "CRI", new BigDecimal("1000"), "2-4 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 6, "ENREGISTREMENT_ACTES_SA", "Enregistrement des actes", "DGI", "DGI", BigDecimal.ZERO, "2-3 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 7, "IMMATRICULATION_RC_SA", "Immatriculation au Registre de commerce", "TRIBUNAL", "Tribunal de commerce", new BigDecimal("350"), "3-5 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 8, "IDENTIFIANT_FISCAL_SA", "Identifiant fiscal et taxe professionnelle", "DGI", "DGI", BigDecimal.ZERO, "2-3 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 9, "AFFILIATION_CNSS_SA", "Affiliation CNSS", "CNSS", "CNSS", BigDecimal.ZERO, "1-2 jours", null, true, false);
-            seedEtape(etapeRepo, wf, 10, "PUBLICATION_LEGALE_SA", "Publication legale (journal + Bulletin Officiel)", "JOURNAL", "Journal / Bulletin Officiel", BigDecimal.ZERO, "2-5 jours", null, true, false);
+            seedSocietyWorkflow(etapeRepo, wf, "SA : blocage du capital obligatoire", true);
             log.info("Workflow SA v1.0 cree");
         }
+    }
+
+    /** RG3/RG15 : même circuit de huit étapes pour les sociétés ; seule la condition de blocage varie. */
+    private void seedSocietyWorkflow(
+            EtapeWorkflowRepository repo,
+            WorkflowVersion workflow,
+            String capitalCondition,
+            boolean capitalBlockageMandatory
+    ) {
+        seedEtape(repo, workflow, 1, "CERTIFICAT_NEGATIF", "Réservation du nom / certificat négatif", "OMPIC", "OMPIC", new BigDecimal("232.76"), "24-48 h", null, true, false);
+        seedEtape(repo, workflow, 2, "REDACTION_STATUTS", "Rédaction, signature et légalisation des statuts", null, "Entrepreneur", BigDecimal.ZERO, "1 jour", null, true, false);
+        seedEtape(repo, workflow, 3, "BLOCAGE_CAPITAL", "Blocage du capital social", null, "Banque partenaire externe", BigDecimal.ZERO, "1-2 jours", capitalCondition, capitalBlockageMandatory, true);
+        seedEtape(repo, workflow, 4, "DEPOT_CRI", "Dépôt et contrôle au guichet unique", "CRI", "CRI", BigDecimal.ZERO, "2 jours", null, true, false);
+        seedEtape(repo, workflow, 5, "REGISTRE_COMMERCE", "Immatriculation au Registre de Commerce", "TRIBUNAL", "Tribunal de commerce", BigDecimal.ZERO, "3 jours", null, true, false);
+        seedEtape(repo, workflow, 6, "IDENTIFIANT_FISCAL", "Attribution de l'identifiant fiscal et de la taxe professionnelle", "DGI", "DGI", BigDecimal.ZERO, "2 jours", null, true, false);
+        seedEtape(repo, workflow, 7, "AFFILIATION_CNSS", "Affiliation à la sécurité sociale", "CNSS", "CNSS", BigDecimal.ZERO, "1 jour", null, true, false);
+        seedEtape(repo, workflow, 8, "PUBLICATION_LEGALE", "Publication légale au Journal et au Bulletin officiel", "JOURNAL", "Journal d'annonces légales / Bulletin officiel", BigDecimal.ZERO, "2 jours", null, true, false);
     }
 
     private void seedEtape(

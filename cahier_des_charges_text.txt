@@ -1,0 +1,655 @@
+=== PAGE 1 ===
+UNIVERSITÉ ABDELMALEK ESSAÂDI
+École nationale des sciences appliquées à Tétouan
+ENSA – Tétouan
+CAHIER DES CHARGES
+Foundly
+Plateforme de digitalisation de la procédure de création
+d’entreprise au Maroc
+Projet académique - Module Frameworks Technologie Web
+Réalisé par Encadré par
+ESSEBAIY Aya
+ELMESSAOUDI Fatima
+Professeur El Hajjamy
+Année universitaire
+2026/2027
+
+=== PAGE 2 ===
+Table des matières
+1 Identification du projet 2
+2 Présentation générale du projet 2
+2.1 Contexte et justification du projet . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+2.1.1 Constat chiffré . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+2.2 Problématique identifiée . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+3 Objectifs du projet 3
+3.1 Objectif général . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+3.2 Objectifs spécifiques . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+4 Périmètre du projet 3
+4.1 Fonctionnalités incluses (in scope) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+4.2 Fonctionnalités exclues (out of scope) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+5 Étude de l’existant 4
+5.1 Description du processus actuel de création d’entreprise au Maroc . . . . . . . . . . . . . . 4
+5.2 Acteurs impliqués dans le processus actuel . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+5.3 Problèmes et limites identifiés . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+6 Présentation des acteurs / parties prenantes 6
+6.1 Utilisateurs finaux (porteurs de projet, entrepreneurs) . . . . . . . . . . . . . . . . . . . . . . 6
+6.2 Administrations concernées (simulées dans la plateforme) . . . . . . . . . . . . . . . . . . . 6
+7 Règles métier 7
+8 Besoins fonctionnels 8
+8.1 Espace Entrepreneur . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+8.2 Espace Agent administratif . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+8.3 Espace Administrateur / Superviseur . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+8.4 Espace public (vitrine) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+9 Données principales manipulées 9
+9.1 Relations principales entre les données . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+10 Besoins non fonctionnels 10
+11 Contraintes 11
+11.1 Contraintes techniques . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+11.2 Contraintes réglementaires / légales . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+12 Annexes 11
+12.1 Glossaire . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+12.2 Textes réglementaires de référence . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+1
+
+=== PAGE 3 ===
+1. Identification du projet
+Rubrique Description
+Nom du projet Foundly– Plateforme de digitalisation de la procédure de création
+d’entreprise au Maroc
+Domaine d’application Administration électronique (e-gouvernement) : dématérialisation et suivi
+des démarches administratives liées à la création d’entreprise.
+Secteurs concernés Création et immatriculation d’entreprises ; services publics aux
+entrepreneurs ; gestion de workflows administratifs multi-organismes.
+Type de solution Application web à architecture client–serveur (frontend Angular, API REST
+Spring Boot, base de données MySQL).
+Public cible Porteurs de projet (auto-entrepreneurs, futurs gérants et associés), agents
+des administrations concernées, superviseurs de la plateforme.
+2. Présentation générale du projet
+2.1 Contexte et justification du projet
+La création d’entreprise au Maroc a connu une modernisation importante ces dernières années, portée par
+les Centres Régionaux d’Investissement (CRI) et l’Office Marocain de la Propriété Industrielle et Commer-
+ciale (OMPIC). Le cadre légal a évolué avec la loi n°47-18 (réforme des CRI, 2019), la loi n°88-17 relative
+à la création et à l’accompagnement d’entreprises par voie électronique, et, plus récemment, la loi n°22-24
+(2024) qui modifie et complète la loi n°47-18.
+La plateforme « DirectEntreprise » de l’OMPIC, lancée en phase pilote en février 2023 à Rabat puis géné-
+ralisée à l’échelle nationale en mars 2025, ramène le délai moyen de création à 3 jours pour les dossiers
+complets et conformes déposés en ligne, selon l’OMPIC. Plus de 50 300 entreprises ont été créées par
+voie électronique depuis son lancement (44 % des créations en 2026), alors que 109 656 entreprises ont
+été créées au Maroc en 2025 (dont 64,8 % de SARL à associé unique parmi les personnes morales).
+Malgré ces avancées, le parcours reste fragmenté du point de vue de l’entrepreneur : plusieurs organismes
+distincts interviennent (OMPIC, CRI, DGI, CNSS, tribunal de commerce, journal d’annonces légales, et la
+banque lorsque le blocage du capital est requis), chacun avec ses propres documents, délais et canaux
+de suivi. L ’entrepreneur manque souvent d’une vue unifiée et en temps réel de l’avancement global de son
+dossier. C’est ce constat qui justifie la conception d’une plateforme centralisant l’ensemble du parcours
+dans une expérience unique.
+2.1.1 Constat chiffré
+Indicateur Valeur Source
+Entreprises créées au Maroc en
+2025
+109 656 (78 622 personnes morales /
+31 034 personnes physiques)
+OMPIC
+Part des SARL-AU parmi les
+personnes morales créées en
+2025
+64,8 % OMPIC (baromètre
+2025)
+Entreprises créées via
+DirectEntreprise depuis le
+lancement
++ 50 300 ; 44 % des créations en 2026 OMPIC, mai 2026
+2
+
+=== PAGE 4 ===
+Indicateur Valeur Source
+Délai moyen de création via
+DirectEntreprise
+3 jours pour les dossiers complets et
+conformes (moins de 24 h dans certains
+cas)
+OMPIC, mai 2026
+Coût de constitution d’une SARL
+(hors capital)
+Environ 3 000 à 15 000 DH selon le
+recours ou non à un professionnel
+(estimation)
+Estimations de
+cabinets, 2026 (non
+officiel)
+Coût du certificat négatif OMPIC 232,76 DH TTC, valable 3 mois OMPIC (tarifs 2026,
+FAQ)
+2.2 Problématique identifiée
+Comment offrir à un porteur de projet marocain une expérience unifiée, guidée et transparente de la créa-
+tion d’entreprise, alors que le processus réel implique plusieurs administrations indépendantes, des docu-
+ments hétérogènes selon la forme juridique, et un manque de visibilité en temps réel sur l’état du dossier ?
+Cette problématique se décline en trois questions opérationnelles : comment simplifier l’identification des
+documents nécessaires selon le profil de l’entrepreneur ? Comment centraliser le dépôt et le suivi de ces
+documents auprès de plusieurs acteurs ? Comment garantir une traçabilité claire de l’avancement du dos-
+sier, étape par étape ?
+3. Objectifs du projet
+3.1 Objectif général
+Concevoir et développer une plateforme web qui digitalise, centralise et fluidifie le parcours administratif de
+création d’entreprise au Maroc, en simulant un guichet unique orchestrant les différentes étapes et acteurs
+concernés.
+3.2 Objectifs spécifiques
+• Guider l’entrepreneur pas à pas selon la forme juridique choisie (auto-entrepreneur, SARL, SARL-AU,
+SA).
+• Générer automatiquement la liste des documents requis et des formulaires pré-remplis selon le cas de
+l’utilisateur.
+• Permettre le dépôt numérique sécurisé des pièces justificatives (CIN, statuts, justificatif de domicile,
+attestation de blocage du capital, etc.).
+• Offrir un suivi de dossier en temps réel, étape par étape, avec notifications automatiques.
+• Simuler les back-offices des organismes concernés (OMPIC, CRI, Tribunal de commerce, DGI, CNSS,
+Journal d’annonces légales) sous forme d’espaces internes à la plateforme, chacun responsable de la
+validation de son étape.
+• Fournir un tableau de bord de pilotage global (délais, taux de rejet, volumétrie) pour un rôle superviseur.
+4. Périmètre du projet
+4.1 Fonctionnalités incluses (in scope)
+• Assistant guidé de détermination de la forme juridique et de la checklist documentaire associée.
+• Dépôt, stockage et consultation des documents numériques par dossier.
+3
+
+=== PAGE 5 ===
+• Génération automatique de documents pré-remplis (statuts type, formulaire unique) au format PDF .
+• Workflow de validation multi-étapes avec passage automatique à l’étape suivante.
+• Espaces différenciés par rôle : Entrepreneur, Agent administratif (simulant un organisme), Administra-
+teur/Superviseur, Vitrine publique.
+• Notifications automatiques (email et/ou in-app) à chaque changement de statut du dossier.
+• Tableau de bord statistique (délais moyens, taux de rejet, volumétrie) pour le rôle Administrateur.
+• Simulation de paiement des frais administratifs (sans transaction bancaire réelle).
+4.2 Fonctionnalités exclues (out of scope)
+• Intégration réelle avec les systèmes d’information de l’OMPIC (DirectEntreprise), de la CNSS, de la DGI
+ou du Tribunal de commerce (ces organismes sont simulés par des rôles internes à l’application, non
+par des connecteurs API réels).
+• Simulation d’un espace ou d’un rôle « Banque » : le blocage du capital est réalisé hors plateforme,
+auprès de la banque de l’entrepreneur ; seul le scan de l’attestation de blocage est téléversé dans la
+plateforme.
+• Valeur juridique des documents générés (statuts, attestations) : les documents produits sont des mo-
+dèles à visée démonstrative et n’ont aucune portée légale.
+• Paiement réel des frais administratifs (aucune transaction bancaire ou fiscale effective).
+• Signature électronique certifiée / horodatage légalement opposable.
+• Gestion des formes juridiques autres que auto-entrepreneur, SARL, SARL-AU et SA (succursales, so-
+ciétés en commandite, etc.).
+• Traduction complète de l’interface en arabe (RTL).
+5. Étude de l’existant
+5.1 Description du processus actuel de création d’entreprise au Maroc
+Le processus de création d’entreprise, bien que partiellement digitalisé via la plateforme DirectEntreprise
+de l’OMPIC (généralisée en mars 2025), reste dans la pratique un parcours multi-guichets : une partie
+des démarches peut être initiée en ligne, mais plusieurs étapes nécessitent encore un dépôt physique
+de documents papier, une signature légalisée en personne, ou un déplacement auprès d’un organisme
+(banque, tribunal de commerce, CRI). La plateforme s’appuie par ailleurs sur des professionnels inscrits
+(notaires, avocats, experts-comptables, comptables agréés).
+Le circuit type observé pour une SARL/SARL-AU se déroule ainsi :
+Certificat négatif (OMPIC)→Rédaction, légalisation et enregistrement des statuts→Blocage du capital
+(banque, si requis)→Dépôt du dossier au guichet unique (CRI)→Immatriculation au Registre de
+Commerce (Tribunal de commerce)→Identifiant fiscal et taxe professionnelle (DGI)→Affiliation CNSS
+→Publication légale
+# Étape Organisme Document(s) requis /
+produits
+Délai
+indicatif
+Mode actuel
+1 Réservation du
+nom / certificat
+négatif
+OMPIC Certificat négatif (3
+propositions)
+24 à 48 h En ligne (DirectEntreprise) ou
+guichet
+4
+
+=== PAGE 6 ===
+# Étape Organisme Document(s) requis /
+produits
+Délai
+indicatif
+Mode actuel
+2 Rédaction,
+signature et
+enregistrement
+des statuts
+Entrepreneur
+/ fiduciaire /
+notaire ; DGI
+(enregistre-
+ment)
+Statuts signés, légalisés
+et enregistrés, PV de
+nomination du gérant
+Variable Papier, signature légalisée en
+personne ; enregistrement
+auprès de la DGI
+3 Blocage du
+capital social (si
+requis)
+Banque
+(acteur
+externe)
+Attestation de blocage du
+capital (obligatoire pour la
+SA et pour la SARL dont
+le capital dépasse
+100 000 DH)
+1 à 2 jours Guichet bancaire physique ;
+l’entrepreneur récupère
+l’attestation
+4 Dépôt du
+dossier au
+guichet unique
+CRI Formulaire unique, pièces
+d’identité, justificatif de
+siège, attestation de
+blocage du capital (si
+requise)
+Immédiat
+(dépôt)
+Guichet physique ou dépôt en
+ligne partiel
+5 Immatriculation
+au Registre de
+Commerce
+Tribunal de
+commerce
+(via CRI)
+Extrait d’immatriculation
+RC, ICE
+3 à 5 jours Traitement interne CRI/tribunal
+6 Identifiant fiscal
+et taxe
+professionnelle
+DGI Identifiant fiscal (IF),
+attestation de taxe
+professionnelle
+2 à 3 jours Traitement interne DGI
+7 Affiliation à la
+sécurité sociale
+CNSS Numéro d’affiliation CNSS 1 à 2 jours Traitement interne CNSS
+8 Publication
+légale
+Journal
+d’annonces
+légales /
+Bulletin
+Officiel
+Attestation de parution 2 à 5 jours Dépôt papier auprès du journal,
+ou publication via la plateforme
+(Imprimerie Officielle)
+Les délais de ce tableau sont des ordres de grandeur issus de guides de praticiens ; ils ne constituent pas des
+engagements officiels.
+5.2 Acteurs impliqués dans le processus actuel
+Acteur Rôle dans le processus
+OMPIC Délivre le certificat négatif ; opère la plateforme DirectEntreprise pour
+l’immatriculation électronique.
+CRI (Centre Régional
+d’Investissement)
+Guichet unique régional ; centralise le dossier et coordonne les autres
+administrations.
+Tribunal de commerce Immatricule l’entreprise au Registre de Commerce (RC).
+DGI (Direction Générale des
+Impôts)
+Attribue l’identifiant fiscal et enregistre la taxe professionnelle.
+CNSS (Caisse Nationale de
+Sécurité Sociale)
+Affilie l’entreprise et ses futurs salariés au régime de sécurité sociale.
+5
+
+=== PAGE 7 ===
+Acteur Rôle dans le processus
+Banque (acteur externe) Reçoit et bloque le capital social, délivre l’attestation de blocage. Elle
+n’intervient pas dans le circuit de validation : c’est l’entrepreneur qui
+remet l’attestation au CRI avec le dossier.
+Journal d’annonces légales /
+Bulletin Officiel
+Publie l’avis de constitution de la société.
+5.3 Problèmes et limites identifiés
+• Multiplicité des interlocuteurs : jusqu’à 7 organismes différents pour un seul dossier, chacun avec ses
+propres délais et exigences documentaires.
+• Déplacements physiques encore nécessaires pour plusieurs étapes (banque, légalisation de signature,
+journal d’annonces légales), malgré la digitalisation partielle.
+• Documents papier persistants : statuts, PV, attestations souvent exigés en original légalisé.
+• Manque de suivi centralisé : l’entrepreneur ne dispose pas d’une vue unique de l’état d’avancement de
+son dossier à travers les différents organismes.
+• Hétérogénéité des canaux de communication (téléphone, guichet, email) rendant le suivi peu prévisible.
+• Risque de rejet tardif d’un dossier faute de vérification centralisée de la complétude des pièces en amont.
+6. Présentation des acteurs / parties prenantes
+6.1 Utilisateurs finaux (porteurs de projet, entrepreneurs)
+Toute personne physique ou morale souhaitant créer une entreprise au Maroc (auto-entrepreneur, SARL,
+SARL-AU, SA), quel que soit son niveau de familiarité avec les démarches administratives.
+6.2 Administrations concernées (simulées dans la plateforme)
+Le processus de création d’entreprise décrit au § 5 mobilise sept acteurs distincts. Six d’entre eux sont
+simulés dans la plateforme, chacun responsable d’une ou plusieurs étapes du parcours :
+• OMPIC : délivrance du certificat négatif et immatriculation électronique.
+• CRI : guichet unique, réception et coordination du dossier, contrôle de la conformité des pièces (dont
+l’attestation de blocage du capital).
+• Tribunal de commerce : immatriculation au Registre de Commerce.
+• DGI : attribution de l’identifiant fiscal et de la taxe professionnelle.
+• CNSS : affiliation à la sécurité sociale.
+• Journal d’annonces légales / Bulletin Officiel : publication légale de la constitution de la société.
+Chacun de ces six organismes est représenté dans la plateforme par un espace « Agent administratif »
+dédié, responsable de la validation de l’étape qui le concerne (voir § 8).
+Labanqueest un acteur externe qui n’est pas simulé : le blocage du capital se fait hors plateforme, et
+l’entrepreneur téléverse le scan de l’attestation de blocage délivrée par sa banque. Cette pièce est ensuite
+contrôlée par l’agent CRI.
+7. Règles métier
+6
+
+=== PAGE 8 ===
+Les règles suivantes définissent le comportement attendu de la plateforme, indépendamment de la solution
+technique retenue. Elles s’appuient sur le circuit décrit au § 5 et sur les rôles décrits au § 8.
+Réf. Thème Règle
+RG1 Propriété du dossier Un dossier appartient à un seul entrepreneur ; un entrepreneur peut posséder
+plusieurs dossiers (un par projet d’entreprise).
+RG2 Forme juridique La forme juridique (auto-entrepreneur, SARL, SARL-AU, SA) est choisie à la
+création du dossier. Elle détermine la checklist documentaire et les étapes
+applicables. Elle n’est modifiable que tant que le dossier est au statut
+« Brouillon ».
+RG3 Parcours selon la
+forme
+Le circuit complet en 8 étapes s’applique aux sociétés (SARL, SARL-AU, SA),
+l’étape 3 (blocage du capital) n’étant applicable que lorsque le blocage est requis
+(voir RG15). Le parcours de l’auto-entrepreneur est allégé : régi par la loi
+n°114-13, il est dispensé d’immatriculation au registre du commerce et n’implique
+ni statuts, ni capital, ni certificat négatif ; l’inscription se fait au registre national de
+l’auto-entrepreneur.
+RG4 Workflow séquentiel Les étapes d’un dossier sont traitées dans l’ordre défini par le workflow : une
+étape ne démarre que lorsque l’étape précédente est validée.
+RG5 Responsabilité de
+l’étape
+Chaque étape est rattachée à un organisme simulé et traitée par un agent de cet
+organisme, à l’exception des étapes à charge de l’entrepreneur (voir RG15). Un
+agent ne consulte que les dossiers dont l’étape courante relève de son
+organisme.
+RG6 Soumission Un dossier ne peut être soumis que si toutes les pièces obligatoires de la
+checklist sont déposées. Les pièces acceptées sont au format PDF ou JPG, avec
+une taille inférieure à 5 Mo.
+RG7 Validation La validation d’une étape par l’agent fait passer automatiquement le dossier à
+l’étape suivante et déclenche une notification. Après la dernière étape validée, le
+dossier passe au statut « Finalisé » et devient consultable en lecture seule.
+RG8 Rejet Le rejet d’une étape exige un motif obligatoire. Le dossier passe au statut « À
+corriger » ; après correction et nouvelle soumission par l’entrepreneur, le
+traitement reprend à l’étape rejetée.
+RG9 Paiement simulé Les étapes soumises à frais (par exemple le certificat négatif, 232,76 DH)
+nécessitent un paiement simulé confirmé avant d’être présentées à l’agent.
+Aucune transaction réelle n’est effectuée.
+RG10 Validité du certificat
+négatif
+Le certificat négatif est valable 3 mois (90 jours) à compter de sa délivrance. Si le
+dossier n’a pas atteint l’immatriculation à l’expiration de ce délai, le certificat doit
+être renouvelé (nouvelle étape et nouveaux frais simulés).
+RG11 Notifications Chaque changement de statut d’un dossier ou d’une étape génère une
+notification à l’entrepreneur (in-app et/ou email).
+RG12 Traçabilité Chaque validation ou rejet est enregistré (auteur : agent ou système, date,
+décision, motif) dans un historique non modifiable.
+RG13 Confidentialité Un entrepreneur n’accède qu’à ses propres dossiers et documents. L ’accès aux
+données personnelles (CIN, coordonnées) est restreint par rôle, conformément à
+la loi n°09-08.
+RG14 Administration Seul l’administrateur crée ou désactive les comptes agents et configure le
+workflow. Une modification du workflow ne s’applique qu’aux nouveaux dossiers ;
+les dossiers en cours conservent leur circuit initial.
+7
+
+=== PAGE 9 ===
+Réf. Thème Règle
+RG15 Étape à charge de
+l’entrepreneur
+Le blocage du capital (étape 3) est effectué auprès d’une banque externe, non
+simulée. Cette étape n’a pas d’agent : elle est validée automatiquement lorsque
+l’entrepreneur téléverse le scan de l’attestation de blocage (PDF ou JPG, moins
+de 5 Mo). La conformité de l’attestation (montant, dénomination, identité des
+associés) est ensuite contrôlée par l’agent CRI à l’étape 4 ; en cas de
+non-conformité, le dossier est rejeté avec motif (RG8). Cette étape ne s’applique
+qu’à la SA et à la SARL dont le capital dépasse 100 000 DH ; elle est ignorée
+dans les autres cas.
+8. Besoins fonctionnels
+Les besoins fonctionnels sont organisés par espace applicatif.
+8.1 Espace Entrepreneur
+• Inscription / authentification (email + mot de passe).
+• Assistant guidé (wizard) : détermination de la forme juridique et génération de la checklist de documents
+correspondante.
+• Dépôt sécurisé des documents (upload, formats PDF/JPG, taille limitée, antivirus applicatif).
+• Téléversement du scan de l’attestation de blocage du capital (étape 3, si requise).
+• Génération de documents pré-remplis (statuts type, formulaire unique) au format PDF .
+• Suivi visuel de l’avancement du dossier (barre de progression, étape courante, historique).
+• Réception de notifications (email et/ou in-app) à chaque changement de statut.
+• Simulation de paiement des frais administratifs (certificat négatif, immatriculation, etc.).
+• Messagerie simple avec l’agent en charge de l’étape en cours (facultatif / bonus).
+8.2 Espace Agent administratif
+• File d’attente des dossiers en attente de traitement pour son étape.
+• Consultation des documents déposés par l’entrepreneur.
+• Validation ou rejet du dossier avec motif obligatoire en cas de rejet.
+• Pour l’agent CRI : vérification de la conformité de l’attestation de blocage du capital téléversée par
+l’entrepreneur.
+• Passage automatique du dossier à l’étape suivante après validation, avec notification à l’entrepreneur et
+mise en file d’attente de l’agent de l’étape suivante.
+• Historique des dossiers traités par l’agent.
+8.3 Espace Administrateur / Superviseur
+• Vue d’ensemble de tous les dossiers, tous statuts confondus, avec filtres (étape, forme juridique, date,
+région).
+• Tableau de bord statistique : délai moyen par étape, taux de rejet, volumétrie mensuelle.
+• Gestion des comptes agents (création, désactivation, affectation à un organisme).
+• Configuration du workflow : ajout, suppression ou réordonnancement des étapes.
+• Export des données (CSV/Excel) à des fins de reporting.
+8
+
+=== PAGE 10 ===
+8.4 Espace public (vitrine)
+• Page d’accueil présentant la plateforme et ses bénéfices.
+• Simulateur indicatif : « combien de temps et combien ça coûte pour créer mon entreprise » selon la
+forme juridique choisie.
+• FAQ répondant aux questions fréquentes (délais, coûts, pièces requises).
+9. Données principales manipulées
+Cette section présente une première identification des données au cœur de la plateforme. Il s’agit d’une
+réflexion préliminaire : le modèle de classes détaillé (entités JPA, types, cardinalités précises) sera établi
+lors de la phase de conception.
+Donnée Description Informations principales Liens avec les autres
+données
+Utilisateur Compte de toute personne
+se connectant à la
+plateforme.
+Nom, prénom, email, mot de passe
+(haché), CIN, téléphone, rôle
+(Entrepreneur, Agent,
+Administrateur), statut du compte.
+Possède des dossiers
+(entrepreneur) ; appartient à
+un organisme (agent) ;
+reçoit des notifications.
+Dossier Demande de création
+d’entreprise suivie de bout
+en bout.
+Référence, dénomination
+envisagée, région, date de
+création, date de clôture, statut
+(Brouillon, Soumis, En cours, À
+corriger, Finalisé).
+Appartient à un utilisateur ;
+a une forme juridique ; se
+décompose en suivis
+d’étape ; regroupe des
+documents et des
+paiements.
+Forme
+juridique
+Type d’entreprise choisi
+(auto-entrepreneur, SARL,
+SARL-AU, SA).
+Libellé, description, coût et délai
+indicatifs.
+Détermine les étapes
+applicables et les types de
+documents requis.
+Étape Définition d’une étape du
+workflow.
+Libellé, ordre, frais éventuels, délai
+indicatif, organisme (facultatif : vide
+pour les étapes à charge de
+l’entrepreneur).
+Rattachée à au plus un
+organisme ; instanciée par
+les suivis d’étape de
+chaque dossier.
+Suivi d’étape Avancement d’un dossier sur
+une étape donnée.
+Statut (En attente, En cours,
+Validée, Rejetée), date de début,
+date de décision, motif de rejet.
+Relie un dossier à une
+étape ; traité par un agent
+(ou validé automatiquement
+pour les étapes à charge de
+l’entrepreneur).
+Organisme Administration simulée
+(OMPIC, CRI, Tribunal de
+commerce, DGI, CNSS,
+Journal d’annonces légales).
+Nom, sigle, description. Responsable d’une ou
+plusieurs étapes ; regroupe
+des agents.
+Type de
+document
+Pièce attendue dans la
+checklist (CIN, statuts,
+justificatif de siège,
+attestation de blocage du
+capital, etc.).
+Libellé, caractère obligatoire,
+formats acceptés.
+Associé à une forme
+juridique et à une étape.
+Document Fichier déposé par
+l’entrepreneur pour un
+dossier.
+Nom du fichier, format, taille, date
+de dépôt, chemin de stockage.
+Appartient à un dossier ;
+correspond à un type de
+document.
+Paiement
+(simulé)
+Règlement fictif des frais
+administratifs.
+Montant, date, statut, référence de
+simulation.
+Lié à un dossier et à une
+étape.
+9
+
+=== PAGE 11 ===
+Donnée Description Informations principales Liens avec les autres
+données
+Notification Message envoyé à
+l’utilisateur lors d’un
+changement de statut.
+Contenu, date d’envoi, canal
+(in-app, email), état de lecture.
+Destinée à un utilisateur ;
+liée à un dossier.
+Historique
+d’audit
+Trace des décisions de
+validation et de rejet.
+Action, date, auteur (agent ou
+système), motif.
+Lié à un suivi d’étape et, le
+cas échéant, à un agent.
+9.1 Relations principales entre les données
+• Un entrepreneur possède plusieurs dossiers ; un dossier appartient à un seul entrepreneur.
+• Un dossier est associé à une seule forme juridique ; une forme juridique peut concerner de nombreux
+dossiers.
+• Un dossier comporte plusieurs suivis d’étape, un par étape applicable du workflow.
+• Une étape est rattachée à au plus un organisme (aucun pour les étapes à charge de l’entrepreneur) ; un
+organisme regroupe plusieurs agents.
+• Un dossier contient plusieurs documents, chacun correspondant à un type de document défini par la
+checklist.
+• Chaque changement de statut génère une notification et une entrée dans l’historique d’audit.
+10. Besoins non fonctionnels
+Catégorie Exigence
+Performance Temps de réponse < 2 s pour les opérations courantes (consultation de dossier, upload
+de fichier < 5 Mo).
+Sécurité Authentification par rôle (Spring Security + JWT), chiffrement des documents sensibles
+au repos, contrôle d’accès strict par espace (RBAC). Traitement des données
+personnelles (CIN, coordonnées) conforme aux principes de la loi n°09-08 relative à la
+protection des personnes physiques à l’égard du traitement des données à caractère
+personnel (minimisation des données, finalité déclarée, sécurité des traitements).
+Disponibilité / fiabilité Application accessible en continu pendant les périodes de démonstration ; tolérance aux
+erreurs d’upload (retry, messages clairs) ; journal d’audit des actions de validation/rejet.
+Ergonomie et
+accessibilité
+Interface simple et guidée, adaptée à un public non technique (wizard, messages d’aide
+contextuels, hiérarchie visuelle claire).
+Compatibilité
+multi-plateformes
+Interface web responsive, utilisable sur ordinateur, tablette et smartphone, sur les
+navigateurs courants (Chrome, Firefox, Edge, Safari).
+Scalabilité Backend monolithique organisé en couches (API, métier, accès aux données) avec un
+frontend Angular découplé, permettant d’ajouter de nouvelles formes juridiques, étapes
+de workflow ou organismes sans refonte majeure.
+Portabilité Déploiement conteneurisé (Docker / Docker Compose) pour faciliter la démonstration et
+la reproductibilité.
+Testabilité Couverture de tests unitaires et d’intégration sur la logique de workflow (transitions
+d’étapes).
+Multilinguisme
+(souhaitable)
+Interface en français, avec possibilité d’extension en arabe (RTL) pour se rapprocher du
+contexte réel marocain.
+11. Contraintes
+10
+
+=== PAGE 12 ===
+11.1 Contraintes techniques
+• Backend : Spring Boot, projet Maven.
+• Base de données : MySQL.
+• Frontend : Angular (application web monopage, SPA).
+• Architecture de communication : Frontend→API REST→Backend→Base de données.
+• Conteneurisation Docker pour l’hébergement de démonstration.
+11.2 Contraintes réglementaires / légales
+• Respect des principes de la loi n°09-08 relative à la protection des données à caractère personnel
+(encadrée par la CNDP) pour toute donnée personnelle simulée dans l’application (CIN, coordonnées
+des entrepreneurs). En conditions réelles, un tel traitement serait soumis à déclaration ou autorisation
+préalable auprès de la CNDP .
+• Cohérence du workflow avec le cadre légal réel des CRI, de la création électronique d’entreprise (loi
+n°88-17 et son décret d’application n°2-22-92) et du statut d’auto-entrepreneur (loi n°114-13), à titre de
+référence documentaire — sans valeur juridique opposable pour les documents générés.
+12. Annexes
+12.1 Glossaire
+Terme Définition
+OMPIC Office Marocain de la Propriété Industrielle et Commerciale : délivre le certificat négatif et
+opère la plateforme DirectEntreprise.
+CRI Centre Régional d’Investissement : guichet unique régional pour la création d’entreprise.
+CNSS Caisse Nationale de Sécurité Sociale : organisme de protection sociale des salariés.
+DGI Direction Générale des Impôts : administration fiscale marocaine.
+RC Registre de Commerce : registre légal d’immatriculation des entreprises.
+SARL Société à Responsabilité Limitée : forme juridique la plus courante au Maroc.
+SARL-AU SARL à Associé Unique : SARL constituée par une seule personne.
+Auto-entrepreneur Statut de personne physique créé par la loi n°114-13, dispensé d’immatriculation au
+registre du commerce ; inscription au registre national de l’auto-entrepreneur.
+ICE Identifiant Commun de l’Entreprise, identifiant unique attribué aux entreprises
+immatriculées.
+Certificat négatif Document attestant la disponibilité d’une dénomination sociale ou d’une enseigne.
+Attestation de
+blocage du capital
+Document délivré par la banque confirmant que le capital de la société en formation a été
+déposé et bloqué ; il est joint au dossier déposé au CRI.
+CNDP Commission Nationale de contrôle de la protection des Données à caractère Personnel,
+autorité marocaine de régulation créée par la loi 09-08.
+Workflow Enchaînement ordonné des étapes de traitement d’un dossier au sein de la plateforme.
+12.2 Textes réglementaires de référence
+• Loi n°47-18 relative aux Centres Régionaux d’Investissement (réforme 2019).
+• Loi n°88-17 relative à la création et à l’accompagnement des entreprises par voie électronique, et son
+décret d’application n°2-22-92 ; loi n°89-17 modifiant et complétant la loi n°15-95 formant code de com-
+merce.
+11
+
+=== PAGE 13 ===
+• Loi n°22-24 (Dahir n°1-24-68 du 20 décembre 2024) modifiant et complétant la loi n°47-18.
+• Loi n°09-08 relative à la protection des personnes physiques à l’égard du traitement des données à
+caractère personnel (Dahir n°1-09-15 du 18 février 2009), et son décret d’application n°2-09-165 du 21
+mai 2009.
+• Loi n°114-13 relative au statut de l’auto-entrepreneur (Dahir n°1-15-06 du 19 février 2015).
+• Loi n°5-96 relative à la société en nom collectif, à la société en commandite simple, à la société en
+commandite par actions, à la société à responsabilité limitée et à la société en participation (modifiée
+notamment par les lois n°21-05 et n°24-10).
+• Plateforme « DirectEntreprise » - OMPIC (généralisation nationale, mars 2025).
+• Baromètre de la création d’entreprises - OMPIC, données 2025-2026.
+12
+

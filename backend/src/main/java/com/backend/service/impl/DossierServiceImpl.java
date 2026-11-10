@@ -28,6 +28,7 @@ public class DossierServiceImpl implements DossierService {
     private final DossierRepository dossierRepository;
     private final SuiviEtapeRepository suiviEtapeRepository;
     private final DocumentRepository documentRepository;
+    private final PaiementRepository paiementRepository;
     private final AuditEventRepository auditEventRepository;
     private final WorkflowEngineService workflowEngineService;
     private final NotificationService notificationService;
@@ -37,6 +38,7 @@ public class DossierServiceImpl implements DossierService {
             DossierRepository dossierRepository,
             SuiviEtapeRepository suiviEtapeRepository,
             DocumentRepository documentRepository,
+            PaiementRepository paiementRepository,
             AuditEventRepository auditEventRepository,
             WorkflowEngineService workflowEngineService,
             NotificationService notificationService,
@@ -45,6 +47,7 @@ public class DossierServiceImpl implements DossierService {
         this.dossierRepository = dossierRepository;
         this.suiviEtapeRepository = suiviEtapeRepository;
         this.documentRepository = documentRepository;
+        this.paiementRepository = paiementRepository;
         this.auditEventRepository = auditEventRepository;
         this.workflowEngineService = workflowEngineService;
         this.notificationService = notificationService;
@@ -201,6 +204,20 @@ public class DossierServiceImpl implements DossierService {
             throw new IncompleteChecklistException(
                     "Impossible de soumettre le dossier : des pièces obligatoires sont manquantes.",
                     missingDocs
+            );
+        }
+
+        // RG9 : le premier paiement requis doit être confirmé avant la mise en file d'attente de l'agent.
+        SuiviEtape payableCurrentStep = suiviEtapeRepository.findByDossierIdOrderByOrdreAsc(dossierId).stream()
+                .filter(step -> step.getStatut() == StepStatus.EN_COURS && step.isPaymentRequired())
+                .findFirst()
+                .orElse(null);
+        if (payableCurrentStep != null && !paiementRepository.existsByDossierIdAndSuiviEtapeIdAndStatut(
+                dossierId, payableCurrentStep.getId(), PaymentStatus.CONFIRME)) {
+            throw new IncompleteChecklistException(
+                    "Impossible de soumettre le dossier : le paiement requis pour « "
+                            + payableCurrentStep.getLibelle() + " » doit être confirmé.",
+                    List.of("Paiement requis : " + payableCurrentStep.getLibelle())
             );
         }
 

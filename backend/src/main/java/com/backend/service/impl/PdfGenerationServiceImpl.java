@@ -255,7 +255,10 @@ public class PdfGenerationServiceImpl implements PdfGenerationService {
         cs.beginText();
         cs.setFont(font, fontSize);
         cs.newLineAtOffset(x, y);
-        cs.showText(text);
+        // Les polices Standard 14 de PDFBox n'encodent pas tous les caractères Unicode
+        // (par ex. le tiret cadratin « — » présent dans le reçu). La normalisation ici
+        // protège chaque ligne du PDF, y compris les textes fixes du reçu de paiement.
+        cs.showText(sanitize(text));
         cs.endText();
     }
 

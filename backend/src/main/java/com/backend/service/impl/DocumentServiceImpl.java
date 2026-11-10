@@ -37,8 +37,8 @@ public class DocumentServiceImpl implements DocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentServiceImpl.class);
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo maximum (RG6)
-    private static final List<String> ALLOWED_EXTENSIONS = List.of("pdf", "jpg", "jpeg");
-    private static final List<String> ALLOWED_MIME_TYPES = List.of("application/pdf", "image/jpeg", "image/jpg");
+    private static final List<String> ALLOWED_EXTENSIONS = List.of("pdf", "jpg", "jpeg", "png");
+    private static final List<String> ALLOWED_MIME_TYPES = List.of("application/pdf", "image/jpeg", "image/jpg", "image/png");
 
     private final DocumentRepository documentRepository;
     private final DossierRepository dossierRepository;
@@ -195,6 +195,13 @@ public class DocumentServiceImpl implements DocumentService {
     public DocumentResponseDto generateDocument(UUID dossierId, String type, Utilisateur currentUser) {
         Dossier dossier = getDossierAndCheckAccess(dossierId, currentUser);
 
+        if (dossier.getStatut() != DossierStatus.BROUILLON && dossier.getStatut() != DossierStatus.A_CORRIGER) {
+            throw new InvalidDossierStateException("La génération de modèles est autorisée uniquement pour un dossier Brouillon ou À corriger.");
+        }
+        if (dossier.getFormeJuridique() == LegalFormCode.AUTO_ENTREPRENEUR) {
+            throw new IllegalArgumentException("Les modèles Statuts/CRI ne sont pas applicables au parcours Auto-Entrepreneur.");
+        }
+
         byte[] pdfBytes;
         String docTypeCode;
         String fileName;
@@ -293,9 +300,12 @@ public class DocumentServiceImpl implements DocumentService {
             List<DocumentEntity> uploadedDocs,
             Dossier dossier
     ) {
+        // Un modèle Foundly est une aide au remplissage : seul un document ensuite téléversé
+        // par l'entrepreneur peut satisfaire une pièce de la checklist (notamment les statuts signés).
         DocumentEntity activeDoc = uploadedDocs.stream()
+                .filter(d -> d.getSource() == DocumentSource.UPLOADED)
                 .filter(d -> d.getDocumentTypeCode().equalsIgnoreCase(code))
-                .findFirst()
+                .max(Comparator.comparing(DocumentEntity::getUploadedAt))
                 .orElse(null);
 
         boolean submitted = activeDoc != null;
@@ -315,7 +325,7 @@ public class DocumentServiceImpl implements DocumentService {
                 code,
                 label,
                 required,
-                List.of("application/pdf", "image/jpeg"),
+                List.of("application/pdf", "image/jpeg", "image/png"),
                 submitted,
                 activeDoc != null ? activeDoc.getId() : null,
                 activeDoc != null ? activeDoc.getOriginalFileName() : null,
@@ -340,7 +350,7 @@ public class DocumentServiceImpl implements DocumentService {
 
         String extension = FilenameUtils.getExtension(originalName).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new InvalidFileException("Extension de fichier non autorisée : ." + extension + ". Formats acceptés : PDF, JPG, JPEG (RG6).");
+            throw new InvalidFileException("Extension de fichier non autorisée : ." + extension + ". Formats acceptés : PDF, JPG, JPEG, PNG (RG6).");
         }
 
         String contentType = file.getContentType();

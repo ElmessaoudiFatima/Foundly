@@ -98,7 +98,9 @@ public class PaymentController {
             @PathVariable UUID paymentId,
             Authentication authentication
     ) {
-        getAuthenticatedUser(authentication);
+        Utilisateur user = getAuthenticatedUser(authentication);
+        // Vérifie aussi la propriété du dossier avant d'exposer un reçu (RG13).
+        paymentService.getPayments(dossierId, user);
 
         Paiement p = paiementRepository.findByIdAndDossierId(paymentId, dossierId)
                 .orElseThrow(() -> new PaymentNotFoundException("Paiement introuvable : " + paymentId));
