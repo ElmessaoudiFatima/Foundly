@@ -1,0 +1,265 @@
+<main class="review-page">
+  <button class="back-link" type="button" (click)="back.emit()">← Retour à {{ fromHistory ? 'l’historique' : 'la file d’attente' }}</button>
+
+  <div class="loading-state" *ngIf="loading">
+    <div class="skeleton skeleton-title"></div>
+    <div class="skeleton skeleton-stepper"></div>
+    <div class="skeleton skeleton-card"></div>
+    <span>Chargement du dossier et de ses documents…</span>
+  </div>
+
+  <section class="error-state" *ngIf="!loading && loadingError">
+    <h1>{{ notFound ? 'Dossier indisponible' : 'Impossible d’afficher le dossier' }}</h1>
+    <p>{{ loadingError }}</p>
+    <button class="button button-outline" type="button" (click)="load(dossierId)">Réessayer</button>
+  </section>
+
+  <ng-container *ngIf="!loading && !loadingError && dossier as d">
+    <header class="review-header">
+      <div class="header-copy">
+        <div class="eyebrow">DOSSIER {{ d.reference }}</div>
+        <div class="title-line">
+          <h1>{{ d.proposedCompanyName || d.nomEntreprise || 'Dénomination non renseignée' }}</h1>
+          <span class="status-pill" [class.status-running]="currentStatusLabel === 'En cours'"
+            [class.status-correct]="currentStatusLabel === 'À corriger'">{{ currentStatusLabel }}</span>
+          <span class="resubmitted-pill" *ngIf="isResubmitted">Resoumis</span>
+        </div>
+        <p class="subtitle">{{ d.entrepreneurNom || 'Entrepreneur' }} · {{ d.formeJuridique || d.legalFormCode || 'Forme juridique non renseignée' }} · {{ d.region || 'Région non renseignée' }}</p>
+        <button class="text-link" type="button" *ngIf="previousRejectionReason" (click)="showPreviousRejection = true">
+          Voir le motif du rejet précédent
+        </button>
+      </div>
+      <aside class="actionable-card">
+        <span class="eyebrow">ÉTAPE ACTIONNABLE</span>
+        <strong>{{ currentStep ? stepLabel(currentStep) : 'Aucune étape active' }}</strong>
+        <span>En attente depuis {{ getWaitLabel(currentStep?.startedAt || queueItem?.etapeStartedAt || null) }}</span>
+        <span class="overdue" *ngIf="isOverdue()">Délai dépassé · {{ queueItem?.deadlineAt | date:'dd/MM/yyyy' }}</span>
+      </aside>
+    </header>
+
+    <div class="info-banner">
+      <span class="lock-icon" aria-hidden="true">▣</span>
+      <span>Votre action est limitée à l’étape « <strong>{{ currentStep ? stepLabel(currentStep) : 'Consultation' }}</strong> ». Les décisions précédentes sont consultables mais non modifiables.</span>
+    </div>
+
+    <nav class="workflow" aria-label="Progression du dossier">
+      <div class="workflow-scroll">
+        <div class="workflow-step" *ngFor="let step of workflowSteps; let last = last"
+          [class.workflow-done]="step.status === 'VALIDEE'"
+          [class.workflow-current]="step.status === 'EN_COURS' || step.status === 'REJETEE'">
+          <div class="workflow-line" *ngIf="!last"></div>
+          <div class="workflow-node">
+            <span *ngIf="step.status === 'VALIDEE'">✓</span>
+            <span *ngIf="step.status !== 'VALIDEE'">{{ step.order }}</span>
+          </div>
+          <span class="workflow-label">{{ stepLabel(step) }}</span>
+        </div>
+      </div>
+    </nav>
+
+    <div class="review-columns">
+      <div class="main-column">
+        <section class="card">
+          <div class="card-heading">
+            <div><span class="card-kicker">ENTREPRISE</span><h2>Données de l’entreprise</h2></div>
+            <button type="button" class="text-link" (click)="showCompanyDetails = true">Voir la fiche complète</button>
+          </div>
+          <div class="company-grid">
+            <div class="company-field" *ngFor="let field of companyFields">
+              <span>{{ field.label }}</span><strong>{{ field.value }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-heading">
+            <div><span class="card-kicker">CONTRÔLE DE L’ÉTAPE</span><h2>Checklist · Agent {{ organizationCode }}</h2></div>
+            <span class="counter">{{ checkedCount }}/{{ config?.checklist?.length || 0 }} vérifiés</span>
+          </div>
+          <label class="check-row" *ngFor="let item of config?.checklist">
+            <input type="checkbox" [checked]="checklist[item.key] === true" [disabled]="!isClaimedByCurrentAgent || isReadOnly"
+              (change)="onChecklistChange(item.key, $event)">
+            <span class="check-box"></span><span>{{ item.label }}</span>
+          </label>
+          <p class="muted" *ngIf="!isClaimedByCurrentAgent">La checklist est disponible après la prise en charge du dossier.</p>
+        </section>
+
+        <section class="card">
+          <div class="card-heading">
+            <div><span class="card-kicker">TRACE D’AUDIT</span><h2>Décisions précédentes</h2></div>
+            <span class="audit-lock">▣ Audit immuable</span>
+          </div>
+          <div class="empty-inline" *ngIf="priorDecisions.length === 0">Aucune décision antérieure enregistrée.</div>
+          <div class="decision-timeline">
+            <article class="decision-item" *ngFor="let step of priorDecisions">
+              <span class="timeline-dot" [class.dot-rejected]="step.status === 'REJETEE'"></span>
+              <div class="decision-content">
+                <div class="decision-title">{{ stepLabel(step) }} <span class="decision-badge" [class.badge-rejected]="step.status === 'REJETEE'">{{ statusLabel(step.status) }}</span></div>
+                <div class="decision-meta">{{ step.organizationName || step.organizationCode || 'Organisme' }} · {{ step.decidedAt | date:'dd/MM/yyyy à HH:mm' }} · {{ step.decidedBy || 'Agent' }}</div>
+                <p class="rejection-reason" *ngIf="step.rejectionReason">{{ step.rejectionReason }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="card" *ngIf="fromHistory">
+          <div class="card-heading">
+            <div><span class="card-kicker">RG12 · JOURNAL IMMUTABLE</span><h2>Trace d’audit</h2></div>
+            <span class="audit-lock">▣ Lecture seule</span>
+          </div>
+          <p class="muted">Événements liés aux étapes traitées par votre compte. Cette trace ne peut pas être modifiée.</p>
+          <div class="empty-inline" *ngIf="auditEvents.length === 0">Aucun événement d’audit disponible pour vos décisions sur ce dossier.</div>
+          <div class="audit-event-list">
+            <article class="audit-event" *ngFor="let event of auditEvents">
+              <time>{{ event.occurredAt | date:'dd/MM/yyyy à HH:mm:ss' }}</time>
+              <strong>{{ auditActionLabel(event.action) }}</strong>
+              <span>{{ event.actorNom || event.actorType }}</span>
+              <p *ngIf="event.details">{{ event.details }}</p>
+              <p class="rejection-reason" *ngIf="event.reason">{{ event.reason }}</p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="side-column">
+        <section class="card">
+          <div class="card-heading">
+            <div><span class="card-kicker">PIÈCES DU DOSSIER</span><h2>Documents requis</h2></div>
+            <span class="secure-count">◇ {{ relevantDocuments.length }} documents sécurisés</span>
+          </div>
+          <p class="muted">Chaque consultation est journalisée. Les contrôles sont enregistrés pour cette étape.</p>
+          <div class="empty-inline" *ngIf="relevantDocuments.length === 0">Aucun document applicable n’a été déposé.</div>
+          <article class="document-row" *ngFor="let document of relevantDocuments">
+            <div class="file-icon" [class.image-file]="document.mimeType.startsWith('image/')">
+              {{ document.mimeType.startsWith('image/') ? 'JPG' : 'PDF' }}
+            </div>
+            <div class="document-info">
+              <strong>{{ document.fileName }}</strong>
+              <span>{{ document.documentTypeLabel }}</span>
+              <span class="document-status" [class.doc-valid]="document.reviewStatus === 'CONFORME'"
+                [class.doc-invalid]="document.reviewStatus === 'NON_CONFORME'">
+                {{ document.reviewStatus === 'CONFORME' ? 'Valide' : document.reviewStatus === 'NON_CONFORME' ? 'Non conforme' : 'À vérifier' }}
+              </span>
+              <small class="rejection-reason" *ngIf="document.reviewComment">{{ document.reviewComment }}</small>
+            </div>
+            <div class="document-actions">
+              <button type="button" class="button button-small" (click)="preview(document)" [disabled]="documentBusyId === document.id">Prévisualiser</button>
+              <button type="button" class="button button-small button-outline" (click)="download(document)" [disabled]="documentBusyId === document.id">Télécharger</button>
+              <ng-container *ngIf="isClaimedByCurrentAgent && !isReadOnly">
+                <button type="button" class="button button-small button-success" (click)="reviewDocument(document, 'CONFORME')"
+                  [disabled]="documentBusyId === document.id || document.reviewStatus === 'CONFORME'">Conforme</button>
+                <button type="button" class="button button-small button-danger" (click)="markDocumentNonCompliant(document)"
+                  [disabled]="documentBusyId === document.id">Non conforme</button>
+              </ng-container>
+            </div>
+          </article>
+        </section>
+
+        <section class="card validation-card" *ngIf="config as reviewConfig">
+          <div class="card-heading">
+            <div><span class="card-kicker">RÉSULTAT DE L’ÉTAPE</span><h2>Validation · Agent {{ organizationCode }}</h2></div>
+            <span class="result-badge" [class.result-ready]="resultComplete">{{ resultComplete ? 'Conforme' : 'À compléter' }}</span>
+          </div>
+          <h3>{{ reviewConfig.resultTitle }}</h3>
+          <div class="result-field" *ngFor="let field of visibleResultFields">
+            <ng-container *ngIf="field.key !== 'capitalAmountConfirmed' && field.key !== 'companyNameConfirmed' && field.key !== 'partnersIdentityConfirmed' || d.capitalBlockageRequired">
+              <label *ngIf="field.type !== 'checkbox' && field.type !== 'file'" [for]="field.key">{{ field.label }}<span *ngIf="field.required"> *</span></label>
+              <input *ngIf="field.type === 'text' || field.type === 'date'" [id]="field.key" [type]="field.type"
+                [(ngModel)]="resultValues[field.key]" [disabled]="!isClaimedByCurrentAgent || isReadOnly">
+              <label class="result-check" *ngIf="field.type === 'checkbox'">
+                <input type="checkbox" [checked]="resultValues[field.key] === true"
+                  [disabled]="!isClaimedByCurrentAgent || isReadOnly" (change)="onResultCheckboxChange(field.key, $event)">
+                <span>{{ field.label }}</span>
+              </label>
+              <div class="file-upload" *ngIf="field.type === 'file'">
+                <label [for]="field.key">{{ field.label }} *</label>
+                <input [id]="field.key" type="file" accept=".pdf,.jpg,.jpeg" [disabled]="!isClaimedByCurrentAgent || isReadOnly || busy"
+                  (change)="uploadResultFile(field, $event)">
+                <small *ngIf="resultValues[field.key]">Ajouté : {{ resultValues[field.key] }}</small>
+              </div>
+            </ng-container>
+          </div>
+          <p class="muted" *ngIf="organizationCode === 'CRI' && !d.capitalBlockageRequired">Les vérifications de blocage du capital ne sont pas requises pour ce dossier.</p>
+        </section>
+      </aside>
+    </div>
+
+    <div class="action-error" role="alert" *ngIf="actionError">{{ actionError }}</div>
+
+    <footer class="decision-bar" *ngIf="!isClaimedByCurrentAgent && !isReadOnly">
+      <span>▣ Ce dossier doit être pris en charge avant toute décision.</span>
+      <button class="button button-primary" type="button" [disabled]="busy || isClaimedByOtherAgent" (click)="takeInCharge()">
+        {{ busy ? 'Prise en charge…' : isClaimedByOtherAgent ? 'Pris en charge par ' + queueItem?.claimedByAgentName : 'Prendre en charge' }}
+      </button>
+    </footer>
+    <footer class="decision-bar" *ngIf="isClaimedByCurrentAgent && !isReadOnly">
+      <div class="decision-note"><strong>ⓘ Votre décision est définitive et journalisée.</strong><span>Vérifiez toutes les pièces avant de poursuivre.</span></div>
+      <div class="decision-buttons">
+        <button class="button button-danger" type="button" (click)="showRejectModal = true; rejectConfirmStep = 0">⚠ Rejeter l’étape</button>
+        <button class="button button-primary" type="button" [disabled]="!canValidate || busy" (click)="openValidate()"
+          [title]="!checklistComplete ? 'Complétez la checklist.' : !documentsComplete ? 'Contrôlez toutes les pièces applicables.' : !resultComplete ? 'Saisissez le résultat attendu.' : ''">✓ Valider l’étape</button>
+      </div>
+      <span class="validation-hint" *ngIf="!canValidate">Complétez la checklist, contrôlez les documents et saisissez le résultat pour valider.</span>
+    </footer>
+    <footer class="decision-bar readonly-bar" *ngIf="isReadOnly">
+      <span>▣ Dossier déjà traité — consultation en lecture seule.</span>
+    </footer>
+  </ng-container>
+
+  <div class="toast" *ngIf="toastMessage">{{ toastMessage }}</div>
+
+  <div class="modal-backdrop" *ngIf="showPreviousRejection" (click)="showPreviousRejection = false">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="previous-rejection-title" (click)="$event.stopPropagation()">
+      <button class="modal-close" type="button" (click)="showPreviousRejection = false">×</button>
+      <span class="card-kicker">DOSSIER RESOUMIS</span><h2 id="previous-rejection-title">Motif du rejet précédent</h2>
+      <p>{{ previousRejectionReason }}</p>
+      <button class="button button-primary" type="button" (click)="showPreviousRejection = false">Fermer</button>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="showCompanyDetails" (click)="showCompanyDetails = false">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="company-details-title" (click)="$event.stopPropagation()">
+      <button class="modal-close" type="button" (click)="showCompanyDetails = false">×</button>
+      <span class="card-kicker">FICHE ENTREPRENEUR</span><h2 id="company-details-title">Informations complémentaires</h2>
+      <div class="company-grid">
+        <div class="company-field"><span>Entrepreneur</span><strong>{{ dossier?.entrepreneurNom || '—' }}</strong></div>
+        <div class="company-field"><span>CIN</span><strong>{{ maskCin(dossier?.entrepreneurCin) }}</strong></div>
+        <div class="company-field"><span>E-mail</span><strong>{{ dossier?.entrepreneurEmail || '—' }}</strong></div>
+        <div class="company-field"><span>Téléphone</span><strong>{{ dossier?.entrepreneurTelephone || '—' }}</strong></div>
+        <div class="company-field"><span>Adresse du siège</span><strong>{{ dossier?.headOfficeAddress || dossier?.adresseSiege || '—' }}</strong></div>
+        <div class="company-field"><span>Capital social</span><strong>{{ dossier?.capitalMad || dossier?.capitalAmountMad || '—' }} MAD</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="previewDocument" (click)="closePreview()">
+    <section class="modal preview-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="modal-heading"><div><span class="card-kicker">DOCUMENT SÉCURISÉ</span><h2>{{ previewDocument.fileName }}</h2></div><button class="modal-close" type="button" (click)="closePreview()">×</button></div>
+      <iframe *ngIf="previewUrl" [src]="previewUrl" title="Prévisualisation du document"></iframe>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="showValidateModal" (click)="showValidateModal = false">
+    <section class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <span class="card-kicker">CONFIRMATION</span><h2>Valider cette étape ?</h2>
+      <p>Cette décision est définitive et journalisée. Le résultat saisi sera partagé avec l’entrepreneur.</p>
+      <div class="modal-actions"><button class="button button-outline" type="button" (click)="showValidateModal = false">Annuler</button><button class="button button-primary" type="button" [disabled]="busy" (click)="validate()">{{ busy ? 'Validation…' : 'Confirmer la validation' }}</button></div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="showRejectModal" (click)="closeReject()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="reject-title" (click)="$event.stopPropagation()">
+      <span class="card-kicker">DÉCISION RG8</span><h2 id="reject-title">{{ rejectConfirmStep ? 'Confirmer le rejet' : 'Rejeter l’étape' }}</h2>
+      <ng-container *ngIf="!rejectConfirmStep; else rejectConfirmation">
+        <label for="rejection-reason">Motif obligatoire (10 à 500 caractères)</label>
+        <textarea id="rejection-reason" [(ngModel)]="rejectionReason" maxlength="500" rows="5"></textarea>
+        <small>{{ rejectionReason.length }}/500</small><p class="field-error" *ngIf="rejectionError">{{ rejectionError }}</p>
+        <div class="modal-actions"><button class="button button-outline" type="button" (click)="closeReject()">Annuler</button><button class="button button-danger" type="button" (click)="confirmReject()">Continuer</button></div>
+      </ng-container>
+      <ng-template #rejectConfirmation>
+        <p>Confirmer le rejet de l’étape avec le motif suivant ?</p><blockquote>{{ rejectionReason }}</blockquote>
+        <div class="modal-actions"><button class="button button-outline" type="button" (click)="rejectConfirmStep = 0">Retour</button><button class="button button-danger" type="button" [disabled]="busy" (click)="confirmReject()">{{ busy ? 'Rejet…' : 'Confirmer le rejet' }}</button></div>
+      </ng-template>
+    </section>
+  </div>
+</main>

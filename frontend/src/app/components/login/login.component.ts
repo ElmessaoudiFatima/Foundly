@@ -58,9 +58,13 @@ export class LoginComponent implements OnInit {
     this.authService.login({ email: trimmedEmail, password: this.password }).subscribe({
       next: (session) => {
         this.isLoading = false;
+        // Redirection selon le rôle (RG13)
         if (session.user.role === 'ADMINISTRATEUR') {
           this.router.navigate(['/admin']);
+        } else if (session.user.role === 'AGENT') {
+          this.router.navigate(['/agent']);
         } else {
+          // ENTREPRENEUR par défaut
           this.router.navigate(['/dashboard']);
         }
       },

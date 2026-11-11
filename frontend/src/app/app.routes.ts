@@ -4,8 +4,10 @@ import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AdminComponent } from './components/admin/admin.component';
+import { AgentComponent } from './components/agent/agent.component';
 import { authGuard, guestGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { agentGuard } from './guards/agent.guard';
 
 export const routes: Routes = [
   {
@@ -36,6 +38,12 @@ export const routes: Routes = [
     component: AdminComponent,
     canActivate: [adminGuard],
     title: 'Administration centrale — Foundly'
+  },
+  {
+    path: 'agent',
+    component: AgentComponent,
+    canActivate: [agentGuard],
+    title: 'Espace Agent Administratif — Foundly'
   },
   {
     path: '**',

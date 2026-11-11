@@ -1,0 +1,941 @@
+<!-- ================================================================
+     ESPACE AGENT ADMINISTRATIF — Layout fidèle aux maquettes Figma
+     CDC § 8.2 | RG5, RG7, RG8, RG13, RG15
+     ================================================================ -->
+
+<!-- ─── TOAST GLOBAL ─────────────────────────────────────────────── -->
+<div class="toast-wrap" *ngIf="toastMessage()">
+  <div class="toast" [ngClass]="{
+    'toast-success': toastType() === 'success',
+    'toast-error':   toastType() === 'error',
+    'toast-info':    toastType() === 'info'
+  }">
+    <span class="toast-icon">
+      <ng-container *ngIf="toastType() === 'success'">✓</ng-container>
+      <ng-container *ngIf="toastType() === 'error'">✕</ng-container>
+      <ng-container *ngIf="toastType() === 'info'">ℹ</ng-container>
+    </span>
+    {{ toastMessage() }}
+  </div>
+</div>
+
+<div class="agent-layout">
+
+  <!-- ════════════════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-box">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="white" fill-opacity="0.15"/>
+          <path d="M8 8h12v3H11v4h8v3h-8v7H8V8z" fill="white"/>
+        </svg>
+        <span class="logo-text">Foundly</span>
+      </div>
+      <span class="logo-badge">AGENT</span>
+    </div>
+
+    <!-- Organisme -->
+    <div class="sidebar-organisme">
+      <div class="org-label">ORGANISME</div>
+      <div class="org-name">{{ getOrganismeShortLabel(currentOrganisme()) }}</div>
+    </div>
+
+    <!-- Variant Agent -->
+    <div class="sidebar-variant" (click)="toggleAgentVariant($event)">
+      <div class="variant-row">
+        <span class="variant-dot"></span>
+        <span class="variant-text">{{ agentRoleLabel() }}</span>
+        <svg class="variant-chevron" [class.open]="isAgentVariantOpen" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">ESPACE DE TRAITEMENT</div>
+
+      <button class="nav-item" [class.active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Tableau de bord</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'queue' || (activeTab() === 'detail' && returnTab() === 'queue')" (click)="setTab('queue')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>File d'attente</span>
+        <span class="nav-badge" *ngIf="queue().length > 0">{{ queue().length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'history' || (activeTab() === 'detail' && returnTab() === 'history')" (click)="setTab('history')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>Dossiers traités</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'profile'" (click)="setTab('profile')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Mon profil</span>
+      </button>
+    </nav>
+
+    <!-- Déconnexion -->
+    <button class="sidebar-logout" (click)="logout()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Déconnexion
+    </button>
+
+  </aside>
+
+  <!-- ════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════════════════ -->
+  <div class="main-wrap">
+
+    <!-- ─── TOPBAR ──────────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="topbar-breadcrumb">
+        <span class="breadcrumb-org">Portail agent · {{ currentOrganisme() }}</span>
+        <span class="breadcrumb-page">
+          <ng-container *ngIf="activeTab() === 'dashboard'">Tableau de bord</ng-container>
+          <ng-container *ngIf="activeTab() === 'queue'">File d'attente</ng-container>
+          <ng-container *ngIf="activeTab() === 'detail'">{{ returnTab() === 'history' ? 'Dossiers traités · Examen' : 'File d\'attente · Examen' }}</ng-container>
+          <ng-container *ngIf="activeTab() === 'history'">Dossiers traités</ng-container>
+          <ng-container *ngIf="activeTab() === 'profile'">Mon profil</ng-container>
+        </span>
+      </div>
+      <div class="topbar-actions">
+
+        <div class="topbar-profile" (click)="toggleProfileMenu($event)">
+          <div class="profile-avatar">{{ userInitials() }}</div>
+          <div class="profile-info">
+            <span class="profile-name">{{ userName() }}</span>
+            <span class="profile-role">Agent {{ currentOrganisme() }}</span>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+          <!-- Dropdown menu -->
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen" (click)="$event.stopPropagation()">
+            <button class="dropdown-item" (click)="setTab('profile'); isProfileMenuOpen=false">Mon profil</button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item dropdown-item-danger" (click)="logout()">Déconnexion</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════════
+         VUE : TABLEAU DE BORD
+    ════════════════════════════════════════════════════════ -->
+    <main class="main-content" *ngIf="activeTab() === 'dashboard'">
+
+      <!-- Header page -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-date">{{ today | date:'EEEE dd MMMM yyyy' : '' : 'fr-FR' | titlecase }}</div>
+          <h1 class="page-title">Espace {{ currentOrganisme() }}</h1>
+          <p class="page-subtitle">Voici l'activité de votre file de traitement {{ currentOrganisme() }}.</p>
+        </div>
+        <button class="btn-primary" (click)="setTab('queue')">
+          Ouvrir la file d'attente
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Carte session -->
+      <div class="session-card">
+        <div class="session-card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/>
+          </svg>
+        </div>
+        <div class="session-card-body">
+          <div class="session-card-title">Agent {{ currentOrganisme() }}</div>
+          <div class="session-card-sub">{{ getOrganismeShortLabel(currentOrganisme()) }}</div>
+        </div>
+        <span class="session-badge">● Connecté</span>
+      </div>
+
+      <!-- Alerte dossier urgent -->
+      <div class="info-banner" *ngIf="urgentCount() > 0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Attention : <strong>{{ overdueCount() }} dossier(s) en retard</strong> par rapport au délai indicatif et <strong>{{ nearDeadlineCount() }} proche(s) de l'échéance</strong>.
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <!-- 1. Dossiers en attente -->
+        <div class="kpi-card" (click)="setTab('queue')" style="cursor: pointer" title="Voir la file d'attente">
+          <div class="kpi-header">
+            <span class="kpi-label">Dossiers en attente</span>
+            <svg class="kpi-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div class="kpi-value">
+            <span *ngIf="isLoadingQueue()" class="skeleton-shimmer"></span>
+            <span *ngIf="!isLoadingQueue()">{{ queue().length }}</span>
+          </div>
+          <div class="kpi-sub">À traiter par votre organisme</div>
+          <div class="kpi-bar kpi-bar-blue"></div>
+        </div>
+
+        <!-- 2. Traités aujourd'hui -->
+        <div class="kpi-card" (click)="setTab('history')" style="cursor: pointer" title="Voir l'historique">
+          <div class="kpi-header">
+            <span class="kpi-label">Traités aujourd'hui</span>
+            <svg class="kpi-icon kpi-icon-green" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="kpi-value">
+            <span *ngIf="isLoadingHistory()" class="skeleton-shimmer"></span>
+            <span *ngIf="!isLoadingHistory()">{{ todayTreatedCount() }}</span>
+          </div>
+          <div class="kpi-sub">{{ todayValidated() }} validé(s) · {{ todayRejected() }} rejeté(s)</div>
+          <div class="kpi-bar kpi-bar-green"></div>
+        </div>
+
+        <!-- 3. Resoumis après correction -->
+        <div class="kpi-card" (click)="setTab('queue')" style="cursor: pointer" title="Dossiers corrigés réattribués">
+          <div class="kpi-header">
+            <span class="kpi-label">Resoumis après correction</span>
+            <svg class="kpi-icon kpi-icon-orange" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </div>
+          <div class="kpi-value">
+            <span *ngIf="isLoadingQueue()" class="skeleton-shimmer"></span>
+            <span *ngIf="!isLoadingQueue()">{{ resubmittedCount() }}</span>
+          </div>
+          <div class="kpi-sub">Corrigés par l'entrepreneur</div>
+          <div class="kpi-bar kpi-bar-orange"></div>
+        </div>
+
+        <!-- 4. En retard ou proches du délai -->
+        <div class="kpi-card" (click)="setTab('queue')" style="cursor: pointer" title="Urgences et retards">
+          <div class="kpi-header">
+            <span class="kpi-label">En retard / Urgences</span>
+            <svg class="kpi-icon kpi-icon-orange" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="kpi-value">
+            <span *ngIf="isLoadingQueue()" class="skeleton-shimmer"></span>
+            <span *ngIf="!isLoadingQueue()">{{ overdueCount() + nearDeadlineCount() }}</span>
+          </div>
+          <div class="kpi-sub">{{ overdueCount() }} hors délai · {{ nearDeadlineCount() }} proches</div>
+          <div class="kpi-bar kpi-bar-orange"></div>
+        </div>
+      </div>
+
+      <!-- Prochains dossiers + Statistiques & Activité -->
+      <div class="dashboard-bottom">
+
+        <!-- Prochains dossiers -->
+        <div class="db-card">
+          <div class="db-card-header">
+            <div>
+              <div class="db-card-title">Prochains dossiers</div>
+              <div class="db-card-sub">Ceux qui sont prêts en traitement (raccourcis rapides)</div>
+            </div>
+            <button class="link-btn" (click)="setTab('queue')">Voir toute la file →</button>
+          </div>
+
+          <div class="db-empty" *ngIf="queue().length === 0 && !isLoadingQueue()">
+            <span>Aucun dossier en attente pour votre organisme.</span>
+          </div>
+
+          <div class="db-loading-skeleton" *ngIf="isLoadingQueue()">
+            <div class="skeleton-row" *ngFor="let s of [1, 2, 3]">
+              <span class="skeleton-avatar"></span>
+              <div class="skeleton-lines">
+                <span class="skeleton-line skeleton-line-title"></span>
+                <span class="skeleton-line skeleton-line-sub"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="db-dossier-list" *ngIf="!isLoadingQueue()">
+            <div class="db-dossier-row" *ngFor="let item of getDashboardRecentQueue(); let i = index" (click)="openDossier(item)" title="Cliquer pour examiner ce dossier">
+              <span class="db-dossier-num">{{ i + 1 }}</span>
+              <div class="db-dossier-info">
+                <span class="db-dossier-name">
+                  {{ item.nomEntreprise }}
+                  <span class="badge-resubmitted-tag" *ngIf="item.isResubmitted">Resoumis</span>
+                </span>
+                <span class="db-dossier-ref">{{ item.dossierReference }} · {{ getFormeLabel(item.formeJuridique) }} · délai {{ item.indicativeDurationDays || 2 }}j</span>
+              </div>
+              <div class="db-dossier-wait">
+                <span class="db-wait-time">{{ getWaitLabel(item.etapeStartedAt) }}</span>
+              </div>
+              <span class="db-dossier-badge"
+                [class.badge-overdue]="isOverdue(item)"
+                [class.badge-near]="isNearDeadline(item) && !isOverdue(item)"
+                [class.badge-resubmitted]="item.isResubmitted && !isOverdue(item) && !isNearDeadline(item)">
+                {{ isOverdue(item) ? 'En retard' : isNearDeadline(item) ? 'Délai proche' : item.isResubmitted ? 'À re-vérifier' : 'À traiter' }}
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistiques personnelles & Activité -->
+        <div class="db-card db-card-activity">
+          <div class="db-card-header">
+            <div class="db-card-title">Statistiques & Performance</div>
+            <span class="db-card-sub">{{ today | date:'HH:mm' }}</span>
+          </div>
+
+          <!-- Grille stats personnelles : délai moyen, taux validation/rejet -->
+          <div class="stats-personal-grid">
+            <div class="stat-personal-item">
+              <span class="stat-kpi-val stat-val-blue">{{ formattedAverageProcessingTime() }}</span>
+              <span class="stat-kpi-sub">Délai moyen</span>
+            </div>
+            <div class="stat-personal-item">
+              <span class="stat-kpi-val stat-val-green">{{ validationRate() }}%</span>
+              <span class="stat-kpi-sub">Validation</span>
+            </div>
+            <div class="stat-personal-item">
+              <span class="stat-kpi-val stat-val-red">{{ rejectionRate() }}%</span>
+              <span class="stat-kpi-sub">Rejet</span>
+            </div>
+          </div>
+
+          <div class="activity-total">
+            <span class="activity-number">
+              <span *ngIf="isLoadingHistory()" class="skeleton-shimmer skeleton-circle"></span>
+              <span *ngIf="!isLoadingHistory()">{{ todayTreatedCount() }}</span>
+            </span>
+            <span class="activity-label">décisions rendues aujourd'hui</span>
+          </div>
+          <div class="activity-breakdown">
+            <div class="activity-row">
+              <span class="dot dot-green"></span>
+              <span *ngIf="!isLoadingHistory()">{{ todayValidated() }} validées aujourd'hui</span>
+              <span *ngIf="isLoadingHistory()" class="skeleton-text"></span>
+            </div>
+            <div class="activity-row">
+              <span class="dot dot-red"></span>
+              <span *ngIf="!isLoadingHistory()">{{ todayRejected() }} rejetées aujourd'hui</span>
+              <span *ngIf="isLoadingHistory()" class="skeleton-text"></span>
+            </div>
+          </div>
+          <div class="activity-progress-wrap">
+            <div class="activity-progress-bar">
+              <div class="activity-progress-fill"
+                [style.width.%]="validationRate()">
+              </div>
+            </div>
+            <span class="activity-percent">
+              {{ validationRate() }}% validées
+            </span>
+          </div>
+        </div>
+
+      </div><!-- /dashboard-bottom -->
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════
+         VUE : FILE D'ATTENTE
+    ════════════════════════════════════════════════════════ -->
+    <main class="main-content" *ngIf="activeTab() === 'queue'">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">File d'attente</h1>
+          <p class="page-subtitle">Examinez les dossiers attribués à votre organisme.</p>
+        </div>
+        <span class="count-badge">{{ queue().length }} dossier(s) en attente</span>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input class="search-input" type="text" placeholder="Recherche par référence..."
+            [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"/>
+        </div>
+        <div class="filter-selects">
+          <select class="filter-select" [ngModel]="filterForme()" (ngModelChange)="filterForme.set($event)">
+            <option>Toutes</option>
+            <option>SARL</option>
+            <option>SARL_AU</option>
+            <option>SA</option>
+            <option>AUTO_ENTREPRENEUR</option>
+          </select>
+          <select class="filter-select" aria-label="Filtrer par région" [ngModel]="filterRegion()" (ngModelChange)="filterRegion.set($event)">
+            <option>Toutes</option>
+            <option *ngFor="let region of queueRegions()">{{ region }}</option>
+          </select>
+          <label class="queue-date-filter">Du
+            <input class="filter-select" type="date" aria-label="Date d'arrivée à partir de"
+              [ngModel]="filterDateFrom()" (ngModelChange)="filterDateFrom.set($event)"/>
+          </label>
+          <label class="queue-date-filter">Au
+            <input class="filter-select" type="date" aria-label="Date d'arrivée jusqu'à"
+              [ngModel]="filterDateTo()" (ngModelChange)="filterDateTo.set($event)"/>
+          </label>
+          <select class="filter-select" [ngModel]="filterSort()" (ngModelChange)="filterSort.set($event)">
+            <option>Plus récent</option>
+            <option>Plus ancien</option>
+            <option>Référence</option>
+          </select>
+          <select class="filter-select" [ngModel]="filterStatut()" (ngModelChange)="filterStatut.set($event)">
+            <option>Tous</option>
+            <option>Nouveau</option>
+            <option>Resoumis après correction</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Chargement -->
+      <div class="loading-row" *ngIf="isLoadingQueue()">
+        <span class="spinner-sm"></span> Chargement de la file d'attente...
+      </div>
+
+      <!-- Table -->
+      <div class="queue-table-wrap" *ngIf="!isLoadingQueue()">
+        <table class="queue-table" *ngIf="filteredQueue().length > 0">
+          <thead>
+            <tr>
+              <th>RÉFÉRENCE</th>
+              <th>DÉNOMINATION ENVISAGÉE</th>
+              <th>FORME JURIDIQUE</th>
+              <th>RÉGION</th>
+              <th>ENTREPRENEUR</th>
+              <th>ARRIVÉE À L'ÉTAPE</th>
+              <th>DÉLAI RESTANT</th>
+              <th>STATUT</th>
+              <th>PRISE EN CHARGE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of filteredQueue()"
+              [class.row-urgent]="isOverdue(item)"
+              (click)="openDossier(item)" style="cursor:pointer">
+              <td>
+                <span class="ref-link">{{ item.dossierReference }}</span>
+              </td>
+              <td>
+                <div class="cell-main">
+                  {{ item.nomEntreprise }}
+                  <span class="badge-resubmitted-tag" *ngIf="item.isResubmitted">Resoumis</span>
+                </div>
+                <div class="cell-sub">{{ item.etapeLibelle }}</div>
+              </td>
+              <td>{{ getFormeLabel(item.formeJuridique) }}</td>
+              <td>{{ item.region || '—' }}</td>
+              <td>
+                <div class="cell-main">{{ item.entrepreneurNom || '—' }}</div>
+                <div class="cell-sub">{{ item.entrepreneurEmail || 'Entrepreneur enregistré' }}</div>
+              </td>
+              <td>
+                <div>{{ item.etapeStartedAt | date:'dd MMM yyyy' }}</div>
+                <div class="cell-sub">{{ item.etapeStartedAt | date:'HH:mm' }}</div>
+              </td>
+              <td>
+                <div class="wait-cell">
+                  <svg class="wait-icon" [class.wait-urgent]="isOverdue(item) || isUrgent(item.etapeStartedAt)"
+                    width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  {{ getRemainingLabel(item) }}
+                </div>
+                <div class="cell-sub">Délai indicatif : {{ item.indicativeDurationDays || 2 }} j</div>
+              </td>
+              <td>
+                <span class="status-pill" [class.badge-resubmitted]="item.isResubmitted"
+                  [class.pill-normal]="!item.isResubmitted">
+                  {{ item.isResubmitted ? 'Resoumis après correction' : 'Nouveau' }}
+                </span>
+                <div class="cell-sub" *ngIf="isOverdue(item)">En retard</div>
+                <div class="cell-sub" *ngIf="isNearDeadline(item) && !isOverdue(item)">Délai proche</div>
+              </td>
+              <td>
+                <button class="btn-claim" type="button" [disabled]="isTakingCharge() || (item.claimedByAgentId && !item.claimedByCurrentAgent)"
+                  (click)="takeInCharge(item, $event)">
+                  {{ item.claimedByCurrentAgent ? 'Continuer' : item.claimedByAgentName ? 'Pris par ' + item.claimedByAgentName : 'Prendre en charge' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="filteredQueue().length === 0">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <div class="empty-title">Aucun dossier en attente</div>
+          <div class="empty-sub">Il n'y a actuellement aucun dossier attribué à votre organisme.</div>
+        </div>
+
+        <!-- Pagination placeholder -->
+        <div class="table-footer" *ngIf="filteredQueue().length > 0">
+          <span class="table-count">1 à {{ filteredQueue().length }} sur {{ filteredQueue().length }}</span>
+          <div class="pagination">
+            <button class="page-btn" disabled>Précédent</button>
+            <button class="page-btn page-btn-active">1</button>
+            <button class="page-btn" disabled>Suivant</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════
+         VUE : EXAMEN DU DOSSIER
+    ════════════════════════════════════════════════════════ -->
+    <main class="main-content" *ngIf="activeTab() === 'detail' && selectedDossier()">
+
+      <!-- Back -->
+      <button class="back-btn" (click)="goBack()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 5 5 12 12 19"/>
+        </svg>
+        {{ returnTab() === 'history' ? 'Retour aux dossiers traités' : 'Retour à la file d\'attente' }}
+      </button>
+
+      <!-- Chargement -->
+      <div class="loading-row" *ngIf="isLoadingDetail()">
+        <span class="spinner-sm"></span> Chargement du dossier...
+      </div>
+
+      <ng-container *ngIf="!isLoadingDetail() && selectedDossier() as d">
+
+        <!-- Dossier header -->
+        <div class="dossier-header-row">
+          <div class="dossier-header-left">
+            <div class="dossier-ref-tag">DOSSIER {{ d.reference }}</div>
+            <div class="dossier-title-row">
+              <h1 class="dossier-title">{{ getDossierNom(d) }}</h1>
+              <span class="dossier-status-badge" [ngClass]="getStatusBadgeClass(getDossierStatut(d))">
+                ● {{ getStatusLabel(getDossierStatut(d)) }}
+              </span>
+            </div>
+            <div class="dossier-meta-row">
+              <span>{{ d.region || 'Casablanca-Settat' }}</span>
+              <span class="meta-sep">·</span>
+              <span>{{ getDossierForme(d) }}</span>
+              <span class="meta-sep" *ngIf="getDossierCapital(d)">·</span>
+              <span *ngIf="getDossierCapital(d)">{{ getDossierCapital(d) | number }} MAD</span>
+            </div>
+          </div>
+          <div class="dossier-current-step-card" *ngIf="d.currentStep">
+            <div class="csc-label">Étape en cours</div>
+            <div class="csc-name">{{ d.currentStep.label }}</div>
+            <div class="csc-timer" *ngIf="selectedQueueItem()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              En attente depuis {{ getWaitLabel(selectedQueueItem()?.etapeStartedAt || null) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Info banner -->
+        <div class="info-banner info-banner-blue" *ngIf="d.currentStep">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Votre action est limitée à l'étape « <strong>{{ d.currentStep.label }}</strong> ». Les décisions antérieures ont été prises par d'autres organismes partenaires.
+        </div>
+        <div class="info-banner info-banner-amber" *ngIf="selectedQueueItem()?.previousRejectionReason as reason">
+          <strong>Resoumis après correction — motif du rejet précédent :</strong>
+          <span>{{ reason }}</span>
+        </div>
+
+        <!-- Timeline progression -->
+        <div class="timeline-bar-wrap">
+          <div class="timeline-step" *ngFor="let step of d.steps; let last = last">
+            <div class="ts-node" [ngClass]="getStepStatusClass(step.status)">
+              <svg *ngIf="step.status === 'VALIDEE'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span *ngIf="step.status === 'EN_COURS'" class="ts-pulse"></span>
+              <span *ngIf="step.status === 'EN_ATTENTE'" class="ts-num">{{ step.order }}</span>
+              <svg *ngIf="step.status === 'REJETEE'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </div>
+            <div class="ts-connector" *ngIf="!last" [class.ts-connector-done]="step.status === 'VALIDEE'"></div>
+            <div class="ts-label">{{ step.code | slice:0:12 }}</div>
+          </div>
+        </div>
+
+        <!-- Corps 2 colonnes -->
+        <div class="detail-columns">
+
+          <!-- Colonne Gauche -->
+          <div class="detail-col-main">
+
+            <!-- Données de l'entreprise -->
+            <div class="detail-section">
+              <div class="section-header-row">
+                <h3 class="section-title">Données de l'entreprise</h3>
+                <a href="#" class="link-sm" (click)="$event.preventDefault()">Voir la fiche entrepreneur</a>
+              </div>
+              <div class="data-grid">
+                <div class="data-row">
+                  <span class="data-key">Nom(s) associé(s)</span>
+                  <span class="data-val">{{ getDossierNom(d) || '—' }}</span>
+                </div>
+                <div class="data-row">
+                  <span class="data-key">Forme juridique</span>
+                  <span class="data-val">{{ getDossierForme(d) || '—' }}</span>
+                </div>
+                <div class="data-row" *ngIf="getDossierActivite(d)">
+                  <span class="data-key">Activité</span>
+                  <span class="data-val">{{ getDossierActivite(d) }}</span>
+                </div>
+                <div class="data-row">
+                  <span class="data-key">Gérant / Entrepreneur</span>
+                  <span class="data-val">{{ d.entrepreneurNom || '—' }} <span *ngIf="d.entrepreneurCin" class="text-muted">(CIN: {{ d.entrepreneurCin }})</span></span>
+                </div>
+                <div class="data-row" *ngIf="d.entrepreneurEmail || d.entrepreneurTelephone">
+                  <span class="data-key">Contact</span>
+                  <span class="data-val">{{ d.entrepreneurEmail || '—' }} <span *ngIf="d.entrepreneurTelephone">· {{ d.entrepreneurTelephone }}</span></span>
+                </div>
+                <div class="data-row" *ngIf="d.region">
+                  <span class="data-key">Région</span>
+                  <span class="data-val">{{ d.region }}</span>
+                </div>
+                <div class="data-row" *ngIf="getDossierCapital(d)">
+                  <span class="data-key">Capital social</span>
+                  <span class="data-val">{{ getDossierCapital(d) | number }} MAD</span>
+                </div>
+                <div class="data-row" *ngIf="d.adresseSiege || d.headOfficeAddress">
+                  <span class="data-key">Adresse du siège</span>
+                  <span class="data-val">{{ d.adresseSiege || d.headOfficeAddress }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Checklist Agent -->
+            <div class="detail-section">
+              <div class="section-header-row">
+                <h3 class="section-title">Checklist · Agent {{ currentOrganisme() }}</h3>
+                <span class="checklist-ratio">{{ getCheckedDocsCount() }}/3 vérifiés</span>
+              </div>
+              <div class="checklist-items">
+                <div class="checklist-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Vérifiez les données de définition et dénomination
+                </div>
+                <div class="checklist-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Vérifiez les documents justificatifs uploadés
+                </div>
+                <div class="checklist-item" *ngIf="d.capitalBlockageRequired">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <strong>RG15 :</strong> Vérifier attestation blocage capital ({{ getDossierCapital(d) | number }} MAD)
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions confirm/reject embedded -->
+            <div class="action-panel" *ngIf="showValidateConfirm()">
+              <div class="action-panel-title action-panel-validate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Confirmer la validation
+              </div>
+              <p class="action-panel-desc">Vous êtes sur le point de valider l'étape <strong>{{ d.currentStep?.label }}</strong> pour <strong>{{ getDossierNom(d) }}</strong>. Le dossier passera automatiquement à l'étape suivante.</p>
+              <textarea class="notes-textarea" [(ngModel)]="notesValidation" rows="3"
+                placeholder="Notes de validation (facultatif)..."></textarea>
+              <div class="action-panel-btns">
+                <button class="btn-outline" (click)="showValidateConfirm.set(false)">Annuler</button>
+                <button class="btn-validate" (click)="submitValidate()" [disabled]="isValidating()">
+                  <span class="spinner-sm" *ngIf="isValidating()"></span>
+                  {{ isValidating() ? 'Validation...' : 'Confirmer la validation' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="action-panel" *ngIf="showRejectForm()">
+              <div class="action-panel-title action-panel-reject">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Saisir le motif de rejet (obligatoire — RG8)
+              </div>
+              <textarea class="notes-textarea notes-textarea-reject" [(ngModel)]="motifRejet" rows="4"
+                placeholder="Décrivez précisément le motif de rejet (10–500 caractères)..."></textarea>
+              <div class="char-count" [class.char-warn]="motifRejet.length < 10 && motifRejet.length > 0">
+                {{ motifRejet.length }}/500
+              </div>
+              <div class="error-msg" *ngIf="motifRejetError">{{ motifRejetError }}</div>
+              <div class="action-panel-btns">
+                <button class="btn-outline" (click)="showRejectForm.set(false)">Annuler</button>
+                <button class="btn-reject" (click)="submitReject()" [disabled]="isRejecting()">
+                  <span class="spinner-sm" *ngIf="isRejecting()"></span>
+                  {{ isRejecting() ? 'Rejet...' : 'Confirmer le rejet' }}
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Colonne Droite : Documents requis -->
+          <div class="detail-col-side">
+            <div class="detail-section">
+              <div class="section-header-row">
+                <h3 class="section-title">Documents requis</h3>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="doc-sub">Il vous revient de vérifier ces pièces.</div>
+
+              <div class="doc-empty" *ngIf="selectedDocuments().length === 0">
+                Aucun document déposé pour ce dossier.
+              </div>
+
+              <div class="doc-list" *ngIf="selectedDocuments().length > 0">
+                <div class="doc-row" *ngFor="let doc of selectedDocuments()">
+                  <div class="doc-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div class="doc-info">
+                    <div class="doc-name">{{ doc.fileName }}</div>
+                    <div class="doc-type">{{ doc.documentTypeLabel }}</div>
+                    <div class="doc-meta">{{ formatFileSize(doc.sizeBytes) }}</div>
+                  </div>
+                  <div class="doc-actions">
+                    <button class="doc-btn doc-btn-view" title="Visualiser">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      Visualiser
+                    </button>
+                    <button class="doc-btn doc-btn-dl" title="Télécharger"
+                      (click)="downloadDocument(d.id, doc.id, doc.fileName)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Télécharger
+                    </button>
+                    <span class="doc-status" [class.doc-status-ok]="true">À vérifier</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /detail-columns -->
+
+        <!-- Sticky action bar -->
+        <div class="detail-action-bar">
+          <div class="action-bar-left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span *ngIf="canTakeAction()">Votre décision est définitive et journalisée pour traçabilité.</span>
+            <span *ngIf="!canTakeAction() && selectedQueueItem()?.claimedByAgentName && !selectedQueueItem()?.claimedByCurrentAgent" class="badge-readonly">
+              Pris en charge par {{ selectedQueueItem()?.claimedByAgentName }}.
+            </span>
+            <span *ngIf="!canTakeAction() && !selectedQueueItem()?.claimedByAgentName" class="badge-readonly">
+              {{ selectedQueueItem() ? 'Prenez en charge ce dossier pour pouvoir rendre une décision.' : 'Mode consultation · Décision déjà traitée.' }}
+            </span>
+          </div>
+          <div class="action-bar-right" *ngIf="selectedQueueItem() && !selectedQueueItem()?.claimedByCurrentAgent && !selectedQueueItem()?.claimedByAgentId">
+            <button class="btn-action-validate" (click)="takeSelectedDossierInCharge()" [disabled]="isTakingCharge()">
+              {{ isTakingCharge() ? 'Prise en charge...' : 'Prendre en charge' }}
+            </button>
+          </div>
+          <div class="action-bar-right" *ngIf="canTakeAction()">
+            <button class="btn-outline" (click)="releaseSelectedDossierClaim()" [disabled]="isReleasingClaim()">
+              {{ isReleasingClaim() ? 'Libération...' : 'Libérer le dossier' }}
+            </button>
+            <button class="btn-action-reject" (click)="openRejectForm()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Rejeter l'étape
+            </button>
+            <button class="btn-action-validate" (click)="openValidateConfirm()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Valider l'étape
+            </button>
+          </div>
+        </div>
+
+      </ng-container><!-- /selectedDossier -->
+    </main>
+
+    <main class="main-content" *ngIf="activeTab() === 'detail' && selectedDossierId() as dossierId">
+      <app-agent-dossier-review
+        [dossierId]="dossierId"
+        [queueItem]="selectedQueueItem()"
+        [fromHistory]="returnTab() === 'history'"
+        [organizationCode]="currentOrganisme()"
+        (back)="goBack()"
+        (completed)="onReviewCompleted($event)"
+        (queueItemUpdated)="onQueueItemUpdated($event)">
+      </app-agent-dossier-review>
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════
+         VUE : DOSSIERS TRAITÉS (HISTORIQUE)
+    ════════════════════════════════════════════════════════ -->
+    <main class="main-content" *ngIf="activeTab() === 'history'">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dossiers traités</h1>
+          <p class="page-subtitle">Consultez l'historique immuable de vos décisions.</p>
+        </div>
+        <span class="count-badge count-badge-green">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Dossier {{ currentOrganisme() }} · actif
+        </span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input class="search-input" type="text" placeholder="Rechercher un dossier..."
+            [ngModel]="historySearch()" (ngModelChange)="historySearch.set($event)"/>
+        </div>
+        <div class="filter-selects">
+          <select class="filter-select" [ngModel]="historyDecisionFilter()" (ngModelChange)="historyDecisionFilter.set($event)">
+            <option>Toutes les décisions</option>
+            <option>Validées</option>
+            <option>Rejetées</option>
+          </select>
+          <select class="filter-select" [ngModel]="historyPeriodFilter()" (ngModelChange)="historyPeriodFilter.set($event)">
+            <option>30 derniers jours</option>
+            <option>7 derniers jours</option>
+            <option>Aujourd'hui</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Chargement -->
+      <div class="loading-row" *ngIf="isLoadingHistory()">
+        <span class="spinner-sm"></span> Chargement de l'historique...
+      </div>
+
+      <!-- Table -->
+      <div class="queue-table-wrap" *ngIf="!isLoadingHistory()">
+        <table class="queue-table" *ngIf="filteredHistory().length > 0">
+          <thead>
+            <tr>
+              <th>DOSSIER</th>
+              <th>ENTREPRISE</th>
+              <th>ÉTAPE</th>
+              <th>DÉCISION</th>
+              <th>DATE</th>
+              <th>DURÉE DE TRAITEMENT</th>
+              <th>MOTIF DU REJET</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of filteredHistory()" (click)="openHistoryDossier(h)" style="cursor: pointer">
+              <td><span class="ref-link" (click)="$event.stopPropagation(); openHistoryDossier(h)">{{ h.dossierReference }}</span></td>
+              <td>{{ h.nomEntreprise }}</td>
+              <td>{{ h.etapeLibelle }}</td>
+              <td>
+                <span class="decision-badge" [ngClass]="getDecisionBadgeClass(h.decisionPrise)">
+                  {{ getDecisionLabel(h) }}
+                </span>
+              </td>
+              <td>{{ h.decidedAt | date:'dd MMM yyyy, HH:mm' }}</td>
+              <td>{{ getTreatmentDuration(h) }}</td>
+              <td>
+                <span *ngIf="h.motifRejet" class="motif-text">{{ h.motifRejet }}</span>
+                <span *ngIf="!h.motifRejet" class="text-muted">—</span>
+              </td>
+              <td>
+                <button class="icon-btn-eye" title="Voir le dossier" (click)="$event.stopPropagation(); openHistoryDossier(h)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty historique -->
+        <div class="empty-state" *ngIf="filteredHistory().length === 0">
+          <div class="empty-hist-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <div class="empty-hist-text">Aucune décision rendue. Aucun dossier traité pour le moment.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════
+         VUE : MON PROFIL
+    ════════════════════════════════════════════════════════ -->
+    <main class="main-content" *ngIf="activeTab() === 'profile'">
+      <div class="page-header">
+        <h1 class="page-title">Mon profil</h1>
+      </div>
+      <div class="profile-card">
+        <div class="profile-avatar-lg">{{ userInitials() }}</div>
+        <div class="profile-details">
+          <div class="profile-full-name">{{ userName() }}</div>
+          <div class="profile-role-label">{{ currentOrganismeShort() }}</div>
+          <div class="profile-email">{{ user()?.email }}</div>
+        </div>
+        <div class="profile-org-badge">
+          {{ currentOrganismeLabel() }}
+        </div>
+      </div>
+    </main>
+
+  </div><!-- /main-wrap -->
+</div><!-- /agent-layout -->
