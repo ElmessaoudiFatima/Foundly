@@ -510,67 +510,346 @@ paths:
       summary: Consulter la file des dossiers à traiter par l'agent connecté
       description: |
         Réservé à AGENT. Le serveur filtre obligatoirement par organisme de l'agent,
-        étape courante et statut EN_COURS ; l'organisme n'est jamais passé par le client.
-      parameters:
-        - {$ref: '#/components/parameters/Page'}
-        - {$ref: '#/components/parameters/Size'}
+        étape courante EN_COURS et propriétaire AGENT ; les étapes sans organisme ne sont
+        jamais visibles par défaut. L'organisme n'est jamais passé par le client.
       responses:
         '200':
-          description: Dossiers en attente de décision de cet agent
+          description: Dossiers de l'organisme de l'agent connecté
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PagedAgentQueueItem'}
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AgentQueueItem'}
         '403': {$ref: '#/components/responses/Forbidden'}
-  /agent/dossiers/{dossierId}/review:
+  /agent/dossiers/{id}:
     get:
       tags: [Agent]
-      summary: Ouvrir le dossier et les pièces nécessaires à la décision courante
-      parameters: [{$ref: '#/components/parameters/DossierId'}]
+      summary: Consulter le dossier courant de l'organisme de l'agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
       responses:
         '200':
-          description: Vue de revue avec l'étape courante seulement
+          description: Détail du dossier et de ses étapes
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AgentReview'}
+              schema: {$ref: '#/components/schemas/DossierDetail'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
-  /agent/dossiers/{dossierId}/steps/{stepTrackingId}/decisions:
+  /agent/dossiers/{id}/documents:
+    get:
+      tags: [Agent]
+      summary: Lister les documents d'un dossier accessible à l'organisme
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Documents du dossier
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Document'}
+        '403': {$ref: '#/components/responses/Forbidden'}
     post:
       tags: [Agent]
-      summary: Enregistrer une décision de validation ou de rejet
-      description: |
-        Crée une décision d'audit immuable. `reason` est obligatoire lorsque `decision` vaut REJETER.
-        VALIDER avance automatiquement le workflow. REJETER place le dossier à A_CORRIGER et notifie son propriétaire.
+      summary: Téléverser le résultat documentaire de l'étape par l'agent pris en charge
+      description: Réservé à l'agent qui détient la prise en charge. Le téléversement est ajouté à l'audit.
       parameters:
-        - {$ref: '#/components/parameters/DossierId'}
-        - {$ref: '#/components/parameters/StepTrackingId'}
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, documentTypeCode]
+              properties:
+                file: {type: string, format: binary}
+                documentTypeCode: {type: string, enum: [ATTESTATION_PARUTION]}
+                note: {type: string}
+      responses:
+        '201':
+          description: Document ajouté et audité
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Document'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /agent/dossiers/{id}/documents/{documentId}/review:
+    put:
+      tags: [Agent]
+      summary: Enregistrer le contrôle d'une pièce par l'agent propriétaire
+      description: Un commentaire est obligatoire lorsque le statut est NON_CONFORME. L'action est journalisée.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: documentId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AgentDecisionRequest'}
+            schema: {$ref: '#/components/schemas/AgentDocumentReviewRequest'}
       responses:
-        '201':
-          description: Décision enregistrée et transition exécutée
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/WorkflowTransition'}
+        '204': {description: Contrôle enregistré}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/IllegalState'}
-        '422': {$ref: '#/components/responses/ValidationError'}
+  /agent/dossiers/{id}/documents/{documentId}/content:
+    get:
+      tags: [Agent]
+      summary: Prévisualiser ou télécharger une pièce avec audit de consultation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: documentId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Contenu PDF ou image du document
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+            image/jpeg:
+              schema: {type: string, format: binary}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /agent/dossiers/{id}/claim:
+    post:
+      tags: [Agent]
+      summary: Prendre en charge exclusivement l'étape courante
+      description: |
+        Le verrou persiste jusqu'à la décision ou sa libération explicite. Une seule
+        transaction peut prendre en charge l'étape à la fois ; une autre prise concurrente
+        reçoit une réponse 409.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Dossier réservé à l'agent connecté
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AgentQueueItem'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+    delete:
+      tags: [Agent]
+      summary: Libérer la prise en charge détenue par l'agent connecté
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '204': {description: Prise en charge libérée}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /agent/dossiers/{id}/prise-en-charge:
+    post:
+      tags: [Agent]
+      summary: Alias de prise en charge exclusive de l'étape courante
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Dossier réservé à l'agent connecté
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AgentQueueItem'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /agent/dossiers/{id}/validate:
+    post:
+      tags: [Agent]
+      summary: Valider l'étape courante prise en charge par l'agent
+      description: |
+        Réservé à l'agent propriétaire de la prise en charge. La checklist, les pièces applicables
+        et les champs obligatoires du résultat de l'organisme sont vérifiés par le serveur.
+        Pour OMPIC, la date d'expiration est recalculée côté serveur à 90 jours après la délivrance.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentValidateRequest'}
+      responses:
+        '204': {description: Étape validée}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /agent/dossiers/{id}/valider:
+    post:
+      tags: [Agent]
+      summary: Alias de validation de l'étape courante
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentValidateRequest'}
+      responses:
+        '204': {description: Étape validée}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /agent/dossiers/{id}/reject:
+    post:
+      tags: [Agent]
+      summary: Rejeter l'étape courante et demander une correction
+      description: Le motif est obligatoire et le dossier passe au statut A_CORRIGER.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentRejectRequest'}
+      responses:
+        '204': {description: Étape rejetée, entrepreneur notifié}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
+  /agent/dossiers/{id}/rejeter:
+    post:
+      tags: [Agent]
+      summary: Alias du rejet de l'étape courante
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AgentRejectRequest'}
+      responses:
+        '204': {description: Étape rejetée, entrepreneur notifié}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/IllegalState'}
   /agent/history:
     get:
       tags: [Agent]
       summary: Consulter l'historique des décisions de l'agent connecté
-      parameters:
-        - {$ref: '#/components/parameters/Page'}
-        - {$ref: '#/components/parameters/Size'}
       responses:
         '200':
           description: Décisions prises par l'agent, du plus récent au plus ancien
           content:
             application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AgentHistoryItem'}
+  /agent/history/{id}:
+    get:
+      tags: [Agent]
+      summary: Consulter en lecture seule un dossier déjà traité par l'agent
+      description: Accès historique limité aux dossiers sur lesquels l'agent connecté a rendu une décision; ne donne pas accès à la file active d'un autre organisme.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Détail en lecture seule, données personnelles minimisées selon l'organisme
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DossierDetail'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /agent/history/{id}/documents:
+    get:
+      tags: [Agent]
+      summary: Consulter les documents accessibles dans un dossier déjà traité
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Documents dont le type est autorisé pour l'organisme de l'agent
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Document'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /agent/history/{id}/documents/{documentId}/content:
+    get:
+      tags: [Agent]
+      summary: Prévisualiser un document historique et journaliser sa consultation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: documentId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Contenu du document
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+            image/jpeg:
+              schema: {type: string, format: binary}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /agent/history/{id}/audit-events:
+    get:
+      tags: [Agent]
+      summary: Consulter la trace immuable des étapes traitées par l'agent (RG12)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 0, default: 0}
+        - name: size
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+      responses:
+        '200':
+          description: Événements liés exclusivement aux étapes décidées par l'agent connecté
+          content:
+            application/json:
               schema: {$ref: '#/components/schemas/PagedAuditEvents'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
 
   /admin/dossiers:
     get:
@@ -1123,6 +1402,7 @@ components:
       properties:
         id: {type: string, format: uuid}
         documentTypeCode: {type: string}
+        documentTypeLabel: {type: string}
         fileName: {type: string}
         mimeType: {type: string, enum: [application/pdf, image/jpeg, image/png]}
         sizeBytes: {type: integer, minimum: 1, maximum: 5242879}
@@ -1131,6 +1411,10 @@ components:
         uploadedByUserId: {type: string, format: uuid}
         note: {type: string, nullable: true}
         contentUrl: {type: string, format: uri}
+        reviewStatus: {type: string, enum: [A_VERIFIER, CONFORME, NON_CONFORME]}
+        reviewComment: {type: string, nullable: true}
+        reviewedByAgentName: {type: string, nullable: true}
+        reviewedAt: {type: string, format: date-time, nullable: true}
     StepReference:
       type: object
       required: [code, label, order]
@@ -1155,6 +1439,14 @@ components:
             decidedAt: {type: string, format: date-time, nullable: true}
             rejectionReason: {type: string, nullable: true}
             processedBy: {$ref: '#/components/schemas/UserReference'}
+            organizationCode: {type: string, nullable: true}
+            organizationName: {type: string, nullable: true}
+            checklistReview:
+              type: object
+              additionalProperties: {type: boolean}
+            validationResult:
+              type: object
+              additionalProperties: {type: string}
     SubmissionResult:
       type: object
       required: [dossierId, status, currentStep, submittedAt]
@@ -1188,13 +1480,67 @@ components:
         createdAt: {type: string, format: date-time}
         readAt: {type: string, format: date-time, nullable: true}
     AgentQueueItem:
-      allOf:
-        - {$ref: '#/components/schemas/DossierSummary'}
-        - type: object
-          required: [currentStepTrackingId, waitingSince]
-          properties:
-            currentStepTrackingId: {type: string, format: uuid}
-            waitingSince: {type: string, format: date-time}
+      type: object
+      required: [dossierId, dossierReference, nomEntreprise, formeJuridique, statutDossier, etapeCode, etapeLibelle, organismeCode, etapeStartedAt, isResubmitted, region, claimedByCurrentAgent]
+      properties:
+        dossierId: {type: string, format: uuid}
+        dossierReference: {type: string}
+        nomEntreprise: {type: string, nullable: true}
+        formeJuridique: {$ref: '#/components/schemas/LegalFormCode'}
+        statutDossier: {$ref: '#/components/schemas/DossierStatus'}
+        etapeCode: {type: string}
+        etapeLibelle: {type: string}
+        organismeCode: {type: string}
+        etapeStartedAt: {type: string, format: date-time, nullable: true}
+        dossierSubmittedAt: {type: string, format: date-time, nullable: true}
+        entrepreneurNom: {type: string, nullable: true}
+        entrepreneurEmail: {type: string, nullable: true}
+        indicativeDurationDays: {type: integer}
+        isResubmitted: {type: boolean}
+        region: {type: string}
+        deadlineAt: {type: string, format: date-time, nullable: true}
+        previousRejectionReason: {type: string, nullable: true}
+        claimedByAgentId: {type: string, format: uuid, nullable: true}
+        claimedByAgentName: {type: string, nullable: true}
+        claimedAt: {type: string, format: date-time, nullable: true}
+        claimedByCurrentAgent: {type: boolean}
+    AgentRejectRequest:
+      type: object
+      required: [motifRejet]
+      properties:
+        motifRejet: {type: string, minLength: 10, maxLength: 500}
+    AgentValidateRequest:
+      type: object
+      required: [checklist, stepResult]
+      properties:
+        notes: {type: string}
+        checklist:
+          type: object
+          additionalProperties: {type: boolean}
+        stepResult:
+          type: object
+          additionalProperties: {type: string}
+      description: Les clés requises et les valeurs métier sont contrôlées selon l'organisme de l'étape.
+    AgentDocumentReviewRequest:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [CONFORME, NON_CONFORME]}
+        comment: {type: string, maxLength: 1000, description: Obligatoire si status vaut NON_CONFORME}
+    AgentHistoryItem:
+      type: object
+      required: [dossierId, dossierReference, nomEntreprise, etapeCode, etapeLibelle, decisionPrise, decidedAt]
+      properties:
+        dossierId: {type: string, format: uuid}
+        dossierReference: {type: string}
+        nomEntreprise: {type: string, nullable: true}
+        etapeCode: {type: string}
+        etapeLibelle: {type: string}
+        decisionPrise: {$ref: '#/components/schemas/StepStatus'}
+        motifRejet: {type: string, nullable: true}
+        decidedAt: {type: string, format: date-time, nullable: true}
+        startedAt: {type: string, format: date-time, nullable: true}
+        indicativeDurationDays: {type: integer}
     AgentReview:
       type: object
       required: [dossier, currentStep, documents, checklist]
@@ -1236,7 +1582,7 @@ components:
         occurredAt: {type: string, format: date-time}
         action:
           type: string
-          enum: [DOSSIER_CREE, DOSSIER_SOUMIS, DOCUMENT_AJOUTE, PAIEMENT_CONFIRME, ETAPE_VALIDEE, ETAPE_REJETEE, DOSSIER_FINALISE]
+          enum: [DOSSIER_CREE, DOSSIER_SOUMIS, DOCUMENT_AJOUTE, DOCUMENT_SUPPRIME, DOCUMENT_CONSULTE, DOCUMENT_VERIFIE, PAIEMENT_CONFIRME, ETAPE_VALIDEE, ETAPE_REJETEE, DOSSIER_CORRIGE, DOSSIER_FINALISE]
         actorType: {type: string, enum: [ENTREPRENEUR, AGENT, ADMINISTRATEUR, SYSTEME]}
         actor: {$ref: '#/components/schemas/UserReference'}
         stepTrackingId: {type: string, format: uuid, nullable: true}
@@ -1395,15 +1741,6 @@ components:
         size: {type: integer, minimum: 1}
         totalElements: {type: integer, minimum: 0}
         totalPages: {type: integer, minimum: 0}
-    PagedAgentQueueItem:
-      type: object
-      required: [content, page, size, totalElements, totalPages]
-      properties:
-        content: {type: array, items: {$ref: '#/components/schemas/AgentQueueItem'}}
-        page: {type: integer}
-        size: {type: integer}
-        totalElements: {type: integer}
-        totalPages: {type: integer}
     PagedNotifications:
       type: object
       required: [content, page, size, totalElements, totalPages]
@@ -1415,9 +1752,9 @@ components:
         totalPages: {type: integer}
     PagedAuditEvents:
       type: object
-      required: [content, page, size, totalElements, totalPages]
+      required: [items, page, size, totalElements, totalPages]
       properties:
-        content: {type: array, items: {$ref: '#/components/schemas/AuditEvent'}}
+        items: {type: array, items: {$ref: '#/components/schemas/AuditEvent'}}
         page: {type: integer}
         size: {type: integer}
         totalElements: {type: integer}
