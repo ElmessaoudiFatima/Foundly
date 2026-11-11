@@ -66,6 +66,19 @@ public class SuiviEtape {
     @JoinColumn(name = "agent_id")
     private Utilisateur agent;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "claimed_by_agent_id")
+    private Utilisateur claimedByAgent;
+
+    @Column
+    private Instant claimedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String checklistReviewJson;
+
+    @Column(columnDefinition = "TEXT")
+    private String validationResultJson;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
@@ -119,6 +132,18 @@ public class SuiviEtape {
 
     public Utilisateur getAgent() { return agent; }
     public void setAgent(Utilisateur agent) { this.agent = agent; }
+
+    public Utilisateur getClaimedByAgent() { return claimedByAgent; }
+    public void setClaimedByAgent(Utilisateur claimedByAgent) { this.claimedByAgent = claimedByAgent; }
+
+    public Instant getClaimedAt() { return claimedAt; }
+    public void setClaimedAt(Instant claimedAt) { this.claimedAt = claimedAt; }
+
+    public String getChecklistReviewJson() { return checklistReviewJson; }
+    public void setChecklistReviewJson(String checklistReviewJson) { this.checklistReviewJson = checklistReviewJson; }
+
+    public String getValidationResultJson() { return validationResultJson; }
+    public void setValidationResultJson(String validationResultJson) { this.validationResultJson = validationResultJson; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

@@ -1,5 +1,7 @@
 package com.backend.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.backend.dto.audit.AuditEventDto;
 import com.backend.dto.audit.PagedAuditEventDto;
 import com.backend.dto.dossier.*;
@@ -24,6 +26,10 @@ import java.util.*;
 
 @Service
 public class DossierServiceImpl implements DossierService {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<Map<String, Boolean>> CHECKLIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<Map<String, String>> RESULT_TYPE = new TypeReference<>() {};
 
     private final DossierRepository dossierRepository;
     private final SuiviEtapeRepository suiviEtapeRepository;
@@ -298,6 +304,14 @@ public class DossierServiceImpl implements DossierService {
         );
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public DossierDetailDto getDossierDetailForAgent(UUID dossierId, String organizationCode) {
+        Dossier dossier = dossierRepository.findById(dossierId)
+                .orElseThrow(() -> new DossierNotFoundException("Dossier introuvable : " + dossierId));
+        return mapToDetailDto(dossier, organizationCode);
+    }
+
     private Dossier getDossierAndCheckAccess(UUID dossierId, Utilisateur user) {
         Dossier dossier = dossierRepository.findById(dossierId)
                 .orElseThrow(() -> new DossierNotFoundException("Dossier introuvable : " + dossierId));
@@ -356,6 +370,12 @@ public class DossierServiceImpl implements DossierService {
     }
 
     private DossierDetailDto mapToDetailDto(Dossier d) {
+        return mapToDetailDto(d, null);
+    }
+
+    private DossierDetailDto mapToDetailDto(Dossier d, String agentOrganization) {
+        boolean agentView = agentOrganization != null;
+        String organization = agentView ? agentOrganization.toUpperCase() : "";
         List<SuiviEtape> steps = suiviEtapeRepository.findByDossierIdOrderByOrdreAsc(d.getId());
         int progression = calculateProgressionPercentage(steps);
 
@@ -373,7 +393,10 @@ public class DossierServiceImpl implements DossierService {
                 s.isPaymentRequired(),
                 s.getStartedAt(),
                 s.getDecidedAt(),
-                s.getMotifRejet()
+                s.getMotifRejet(),
+                s.getAgent() == null ? null : s.getAgent().getPrenom() + " " + s.getAgent().getNom(),
+                readJson(s.getChecklistReviewJson(), CHECKLIST_TYPE),
+                readJson(s.getValidationResultJson(), RESULT_TYPE)
         )).toList();
 
         // Taux de complétude de la checklist
@@ -387,6 +410,23 @@ public class DossierServiceImpl implements DossierService {
             currentStepDto = new StepReferenceDto(d.getCurrentStepCode(), d.getEtapeActuelle(), d.getCurrentStepOrder());
         }
 
+        String entNom = null;
+        String entEmail = null;
+        String entCin = null;
+        String entTel = null;
+        if (d.getEntrepreneur() != null) {
+            String prenom = d.getEntrepreneur().getPrenom() != null ? d.getEntrepreneur().getPrenom() : "";
+            String nom = d.getEntrepreneur().getNom() != null ? d.getEntrepreneur().getNom() : "";
+            entNom = (prenom + " " + nom).trim();
+            if (!agentView || Set.of("OMPIC", "CRI", "CNSS").contains(organization)) {
+                entEmail = d.getEntrepreneur().getEmail();
+                entTel = d.getEntrepreneur().getTelephone();
+            }
+            if (!agentView || !organization.equals("JOURNAL")) {
+                entCin = agentView ? maskCin(d.getEntrepreneur().getCin()) : d.getEntrepreneur().getCin();
+            }
+        }
+
         return new DossierDetailDto(
                 d.getId(),
                 d.getReference(),
@@ -395,20 +435,31 @@ public class DossierServiceImpl implements DossierService {
                 d.getStatut(),
                 d.getRegion(),
                 currentStepDto,
-                d.getCapitalMad(),
+                agentView && organization.equals("JOURNAL") ? null : d.getCapitalMad(),
                 progression,
                 d.getRejectionReason(),
                 d.getCreatedAt(),
                 d.getUpdatedAt(),
-                d.getDescriptionActivite(),
+                agentView && organization.equals("JOURNAL") ? null : d.getDescriptionActivite(),
                 d.isCapitalBlockageRequired(),
-                d.getAdresseSiege(),
+                agentView && !Set.of("OMPIC", "CRI", "TRIBUNAL", "DGI").contains(organization)
+                        ? null : d.getAdresseSiege(),
                 d.getSubmittedAt(),
                 d.getFinalizedAt(),
                 completionRate,
                 d.getWorkflowVersionId(),
-                stepDtos
+                stepDtos,
+                entNom,
+                entEmail,
+                entCin,
+                entTel
         );
+    }
+
+    private String maskCin(String cin) {
+        if (cin == null || cin.isBlank()) return null;
+        if (cin.length() <= 4) return "••••";
+        return cin.substring(0, 2) + "•".repeat(Math.max(4, cin.length() - 4)) + cin.substring(cin.length() - 2);
     }
 
     private int calculateProgressionPercentage(List<SuiviEtape> steps) {
@@ -428,5 +479,16 @@ public class DossierServiceImpl implements DossierService {
             case "JOURNAL" -> "Journal d'Annonces Légales & BO";
             default -> code;
         };
+    }
+
+    private <T> Map<String, T> readJson(String value, TypeReference<Map<String, T>> type) {
+        if (value == null || value.isBlank()) {
+            return Map.of();
+        }
+        try {
+            return JSON.readValue(value, type);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+            throw new IllegalStateException("Impossible de lire les données de validation d'une étape.", exception);
+        }
     }
 }

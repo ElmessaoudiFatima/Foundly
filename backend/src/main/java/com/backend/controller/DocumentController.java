@@ -4,6 +4,7 @@ import com.backend.dto.document.DocumentResponseDto;
 import com.backend.entity.Utilisateur;
 import com.backend.repository.UtilisateurRepository;
 import com.backend.service.DocumentService;
+import com.backend.service.AgentService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,13 +23,16 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final UtilisateurRepository utilisateurRepository;
+    private final AgentService agentService;
 
     public DocumentController(
             DocumentService documentService,
-            UtilisateurRepository utilisateurRepository
+            UtilisateurRepository utilisateurRepository,
+            AgentService agentService
     ) {
         this.documentService = documentService;
         this.utilisateurRepository = utilisateurRepository;
+        this.agentService = agentService;
     }
 
     /**
@@ -44,6 +48,7 @@ public class DocumentController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DocumentResponseDto res = documentService.uploadDocument(dossierId, file, documentTypeCode, note, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
@@ -59,7 +64,11 @@ public class DocumentController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         Resource resource = documentService.getDocumentContent(dossierId, documentId, user);
+        if (user.getRole() == com.backend.enums.RoleUtilisateur.AGENT) {
+            agentService.auditDocumentConsultation(dossierId, documentId, user);
+        }
         DocumentResponseDto metadata = documentService.getDocumentMetadata(dossierId, documentId, user);
 
         MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
@@ -84,6 +93,7 @@ public class DocumentController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DocumentResponseDto res = documentService.getDocumentMetadata(dossierId, documentId, user);
         return ResponseEntity.ok(res);
     }
@@ -99,6 +109,7 @@ public class DocumentController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         documentService.deleteDocument(dossierId, documentId, user);
         return ResponseEntity.noContent().build();
     }
@@ -114,6 +125,7 @@ public class DocumentController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DocumentResponseDto res = documentService.generateDocument(dossierId, type, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
@@ -123,5 +135,11 @@ public class DocumentController {
         UUID userId = UUID.fromString(principal.getUsername());
         return utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur authentifié introuvable : " + userId));
+    }
+
+    private void assertAgentDossierAccess(UUID dossierId, Utilisateur user) {
+        if (user.getRole() == com.backend.enums.RoleUtilisateur.AGENT) {
+            agentService.assertClaimedByAgent(dossierId, user);
+        }
     }
 }

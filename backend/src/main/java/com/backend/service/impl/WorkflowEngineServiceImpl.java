@@ -112,6 +112,12 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     @Override
     @Transactional
     public void advanceWorkflow(Dossier dossier, String notes) {
+        advanceWorkflow(dossier, notes, null);
+    }
+
+    @Override
+    @Transactional
+    public void advanceWorkflow(Dossier dossier, String notes, Utilisateur decidingAgent) {
         List<SuiviEtape> steps = suiviEtapeRepository.findByDossierIdOrderByOrdreAsc(dossier.getId());
 
         SuiviEtape currentStep = steps.stream()
@@ -125,16 +131,21 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
             suiviEtapeRepository.save(currentStep);
 
             // Audit
-            auditEventRepository.save(new AuditEvent(
+            String actorName = decidingAgent == null
+                    ? "Système Foundly"
+                    : decidingAgent.getPrenom() + " " + decidingAgent.getNom();
+            AuditEvent decisionEvent = new AuditEvent(
                     dossier,
                     AuditEventAction.ETAPE_VALIDEE,
-                    ActorType.SYSTEME,
-                    null,
-                    "Système Foundly",
+                    decidingAgent == null ? ActorType.SYSTEME : ActorType.AGENT,
+                    decidingAgent,
+                    actorName,
                     currentStep.getId(),
                     null,
                     "Étape validée : " + currentStep.getLibelle() + (notes != null ? " (" + notes + ")" : "")
-            ));
+            );
+            decisionEvent.setStepStartedAt(currentStep.getStartedAt());
+            auditEventRepository.save(decisionEvent);
         }
 
         // Trouver la prochaine étape en attente
@@ -211,7 +222,7 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
 
         String agentNom = agent != null ? agent.getPrenom() + " " + agent.getNom() : "Agent administratif";
 
-        auditEventRepository.save(new AuditEvent(
+        AuditEvent decisionEvent = new AuditEvent(
                 dossier,
                 AuditEventAction.ETAPE_REJETEE,
                 ActorType.AGENT,
@@ -220,7 +231,9 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
                 step.getId(),
                 motifRejet,
                 "L'étape " + step.getLibelle() + " a été rejetée avec motif : " + motifRejet
-        ));
+        );
+        decisionEvent.setStepStartedAt(step.getStartedAt());
+        auditEventRepository.save(decisionEvent);
 
         notificationService.sendNotification(
                 dossier.getEntrepreneur(),

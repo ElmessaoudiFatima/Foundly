@@ -8,6 +8,7 @@ public enum DocumentType {
     CERTIFICAT_NEGATIF("Certificat négatif délivré par l'OMPIC"),
     FORMULAIRE_UNIQUE("Formulaire unique de création d'entreprise (CRI)"),
     PV_NOMINATION_GERANT("Procès-verbal de nomination de la gérance"),
+    ATTESTATION_PARUTION("Attestation de parution de l'annonce légale"),
     AUTRE("Pièce justificative complémentaire");
 
     private final String label;

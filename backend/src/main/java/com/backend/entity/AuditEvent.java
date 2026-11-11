@@ -40,6 +40,9 @@ public class AuditEvent {
     @Column
     private UUID stepTrackingId;
 
+    @Column
+    private Instant stepStartedAt;
+
     @Column(length = 1000)
     private String reason;
 
@@ -83,6 +86,9 @@ public class AuditEvent {
 
     public UUID getStepTrackingId() { return stepTrackingId; }
     public void setStepTrackingId(UUID stepTrackingId) { this.stepTrackingId = stepTrackingId; }
+
+    public Instant getStepStartedAt() { return stepStartedAt; }
+    public void setStepStartedAt(Instant stepStartedAt) { this.stepStartedAt = stepStartedAt; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }

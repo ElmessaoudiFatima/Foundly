@@ -14,6 +14,8 @@ public interface WorkflowEngineService {
 
     void advanceWorkflow(Dossier dossier, String notes);
 
+    void advanceWorkflow(Dossier dossier, String notes, Utilisateur decidingAgent);
+
     void rejectWorkflowStep(Dossier dossier, UUID stepTrackingId, String motifRejet, Utilisateur agent);
 
     void resumeWorkflowAfterCorrection(Dossier dossier);

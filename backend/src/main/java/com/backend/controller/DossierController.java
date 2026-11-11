@@ -7,6 +7,7 @@ import com.backend.enums.DossierStatus;
 import com.backend.repository.UtilisateurRepository;
 import com.backend.service.DocumentService;
 import com.backend.service.DossierService;
+import com.backend.service.AgentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +26,18 @@ public class DossierController {
     private final DossierService dossierService;
     private final DocumentService documentService;
     private final UtilisateurRepository utilisateurRepository;
+    private final AgentService agentService;
 
     public DossierController(
             DossierService dossierService,
             DocumentService documentService,
-            UtilisateurRepository utilisateurRepository
+            UtilisateurRepository utilisateurRepository,
+            AgentService agentService
     ) {
         this.dossierService = dossierService;
         this.documentService = documentService;
         this.utilisateurRepository = utilisateurRepository;
+        this.agentService = agentService;
     }
 
     /**
@@ -76,6 +80,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DossierDetailDto res = dossierService.getDossierDetail(dossierId, user);
         return ResponseEntity.ok(res);
     }
@@ -91,6 +96,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DossierDetailDto res = dossierService.updateDossier(dossierId, request, user);
         return ResponseEntity.ok(res);
     }
@@ -105,6 +111,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         List<ChecklistItemDto> res = documentService.getChecklist(dossierId, user);
         return ResponseEntity.ok(res);
     }
@@ -119,6 +126,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         DossierDetailDto detail = dossierService.getDossierDetail(dossierId, user);
         return ResponseEntity.ok(detail.steps());
     }
@@ -135,6 +143,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         PagedAuditEventDto res = dossierService.getAuditEvents(dossierId, page, size, user);
         return ResponseEntity.ok(res);
     }
@@ -149,6 +158,7 @@ public class DossierController {
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
+        assertAgentDossierAccess(dossierId, user);
         SubmissionResultDto res = dossierService.submitDossier(dossierId, user);
         return ResponseEntity.ok(res);
     }
@@ -158,5 +168,11 @@ public class DossierController {
         UUID userId = UUID.fromString(principal.getUsername());
         return utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur authentifié introuvable : " + userId));
+    }
+
+    private void assertAgentDossierAccess(UUID dossierId, Utilisateur user) {
+        if (user.getRole() == com.backend.enums.RoleUtilisateur.AGENT) {
+            agentService.assertDossierAccess(dossierId, user);
+        }
     }
 }

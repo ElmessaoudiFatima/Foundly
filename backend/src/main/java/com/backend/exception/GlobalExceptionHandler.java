@@ -133,6 +133,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(AgentClaimConflictException.class)
+    public ResponseEntity<ApiError> handleAgentClaimConflict(AgentClaimConflictException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(409, "AGENT_CLAIM_CONFLICT", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(InvalidFileException.class)
     public ResponseEntity<ApiError> handleInvalidFile(InvalidFileException ex, HttpServletRequest request) {
         ApiError error = new ApiError(400, "INVALID_FILE", ex.getMessage(), request.getRequestURI());

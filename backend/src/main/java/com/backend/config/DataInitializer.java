@@ -1,6 +1,8 @@
 package com.backend.config;
 
 import com.backend.entity.Dossier;
+import com.backend.entity.AuditEvent;
+import com.backend.entity.DocumentEntity;
 import com.backend.entity.EtapeWorkflow;
 import com.backend.entity.Organisme;
 import com.backend.entity.SuiviEtape;
@@ -8,11 +10,15 @@ import com.backend.entity.Utilisateur;
 import com.backend.entity.WorkflowVersion;
 import com.backend.enums.ActorType;
 import com.backend.enums.DossierStatus;
+import com.backend.enums.DocumentSource;
+import com.backend.enums.AuditEventAction;
 import com.backend.enums.LegalFormCode;
 import com.backend.enums.RoleUtilisateur;
 import com.backend.enums.StepStatus;
 import com.backend.enums.WorkflowStatus;
 import com.backend.repository.DossierRepository;
+import com.backend.repository.AuditEventRepository;
+import com.backend.repository.DocumentRepository;
 import com.backend.repository.EtapeWorkflowRepository;
 import com.backend.repository.OrganismeRepository;
 import com.backend.repository.SuiviEtapeRepository;
@@ -23,24 +29,42 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 @Configuration
 public class DataInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
+    @Value("${foundly.upload.dir:./uploads}")
+    private String uploadBaseDir;
+
     @Bean
     public CommandLineRunner initDatabase(
             UtilisateurRepository utilisateurRepository,
             DossierRepository dossierRepository,
+            DocumentRepository documentRepository,
+            AuditEventRepository auditEventRepository,
             OrganismeRepository organismeRepository,
             SuiviEtapeRepository suiviEtapeRepository,
             PasswordEncoder passwordEncoder,
@@ -48,7 +72,7 @@ public class DataInitializer {
             EtapeWorkflowRepository etapeWorkflowRepository
     ) {
         return args -> runInit(
-                utilisateurRepository, dossierRepository, organismeRepository,
+                utilisateurRepository, dossierRepository, documentRepository, auditEventRepository, organismeRepository,
                 suiviEtapeRepository, passwordEncoder,
                 workflowVersionRepository, etapeWorkflowRepository
         );
@@ -58,6 +82,8 @@ public class DataInitializer {
     public void runInit(
             UtilisateurRepository utilisateurRepository,
             DossierRepository dossierRepository,
+            DocumentRepository documentRepository,
+            AuditEventRepository auditEventRepository,
             OrganismeRepository organismeRepository,
             SuiviEtapeRepository suiviEtapeRepository,
             PasswordEncoder passwordEncoder,
@@ -114,7 +140,7 @@ public class DataInitializer {
         seedAgentIfMissing(utilisateurRepository, passwordEncoder,
                 "Karim", "Bennis", "k.bennis@cnss.ma", "CNSS", true, Instant.now().minus(3, ChronoUnit.HOURS));
 
-        // Migration : corriger les agents existants dont le champ organisme n'est pas encore un code
+        // Migration : normaliser les codes organisme de tous les agents existants
         migrateAgentOrganismeToCode(utilisateurRepository);
 
         // 3. Entrepreneurs et dossiers initiaux
@@ -145,15 +171,261 @@ public class DataInitializer {
 
             log.info("=== Foundly DataInitializer: {} dossiers seedes avec succes ===", dossierRepository.count());
         } else {
-            log.info("=== Foundly DataInitializer: dossiers deja presents ({}) — seed ignore ===", dossierRepository.count());
+            log.info("=== Foundly DataInitializer: dossiers deja presents ({}) ===", dossierRepository.count());
         }
 
+        // 3.5. Synchronisation active des étapes de workflow avec l'étape courante
+        synchronizeDossierStepsWithCurrentState(dossierRepository, suiviEtapeRepository);
+        ensureSeededDossierData(dossierRepository, suiviEtapeRepository, documentRepository,
+                auditEventRepository, utilisateurRepository);
+
         // 4. Seed workflows par defaut (idempotent)
-        // RG14 : ces versions sont creees ACTIVE une seule fois ;
-        // les dossiers en cours conservent leur workflow initial.
         seedWorkflowsIfMissing(workflowVersionRepository, etapeWorkflowRepository);
 
         log.info("=== Foundly DataInitializer: termine avec succes ===");
+    }
+
+    // =========================================================
+    // SYNCHRONISATION DES ÉTAPES DU WORKFLOW
+    // =========================================================
+
+    /**
+     * S'assure que chaque dossier en cours ou soumis a son étape active
+     * (StepStatus.EN_COURS) exactement alignée sur son organisme de traitement,
+     * permettant aux agents respectifs (OMPIC, CRI, Tribunal) de voir leurs dossiers en file d'attente.
+     */
+    private void synchronizeDossierStepsWithCurrentState(
+            DossierRepository dossierRepo,
+            SuiviEtapeRepository stepRepo
+    ) {
+        List<Dossier> dossiers = dossierRepo.findAll();
+        for (Dossier d : dossiers) {
+            if (d.getStatut() == DossierStatus.FINALISE || d.getStatut() == DossierStatus.BROUILLON) {
+                continue;
+            }
+            List<SuiviEtape> steps = stepRepo.findByDossierIdOrderByOrdreAsc(d.getId());
+            if (steps.isEmpty()) {
+                steps = buildStepsForDossier(d);
+                steps = stepRepo.saveAll(steps);
+            }
+
+            if (d.getStatut() == DossierStatus.A_CORRIGER) {
+                List<SuiviEtape> currentSteps = steps;
+                SuiviEtape rejectedStep = steps.stream()
+                        .filter(step -> step.getStatut() == StepStatus.REJETEE)
+                        .findFirst()
+                        .orElseGet(() -> currentSteps.stream()
+                                .filter(step -> step.getOrdre() == 4)
+                                .findFirst()
+                                .orElse(currentSteps.get(0)));
+                for (SuiviEtape step : steps) {
+                    if (step.getOrdre() < rejectedStep.getOrdre()) {
+                        step.setStatut(StepStatus.VALIDEE);
+                        if (step.getDecidedAt() == null) step.setDecidedAt(Instant.now().minus(2, ChronoUnit.DAYS));
+                    } else if (step.getId().equals(rejectedStep.getId())) {
+                        step.setStatut(StepStatus.REJETEE);
+                        step.setMotifRejet(d.getRejectionReason());
+                        if (step.getDecidedAt() == null) step.setDecidedAt(Instant.now().minus(1, ChronoUnit.DAYS));
+                        d.setCurrentStepCode(step.getEtapeCode());
+                        d.setCurrentStepOrder(step.getOrdre());
+                        d.setEtapeActuelle(step.getLibelle());
+                    } else {
+                        step.setStatut(StepStatus.EN_ATTENTE);
+                    }
+                }
+                stepRepo.saveAll(steps);
+                dossierRepo.save(d);
+                continue;
+            }
+
+            String nom = d.getNomEntreprise() != null ? d.getNomEntreprise().toLowerCase() : "";
+            String ref = d.getReference() != null ? d.getReference().toUpperCase() : "";
+            String etape = d.getEtapeActuelle() != null ? d.getEtapeActuelle().toLowerCase() : "";
+            String code = d.getCurrentStepCode() != null ? d.getCurrentStepCode().toUpperCase() : "";
+
+            // Cas A : Dossier Guichet CRI (ex: Atlas Studio ou Nexa Conseil) -> ordre 4 (DEPOT_CRI)
+            if (nom.contains("atlas") || ref.contains("04821") || etape.contains("cri") || code.contains("CRI")) {
+                for (SuiviEtape s : steps) {
+                    if (s.getOrdre() < 4) {
+                        s.setStatut(StepStatus.VALIDEE);
+                        if (s.getDecidedAt() == null) s.setDecidedAt(Instant.now().minus(2, ChronoUnit.DAYS));
+                    } else if (s.getOrdre() == 4) {
+                        s.setStatut(StepStatus.EN_COURS);
+                        s.setOrganismeCode("CRI");
+                        if (s.getStartedAt() == null) s.setStartedAt(Instant.now().minus(1, ChronoUnit.DAYS));
+                        d.setCurrentStepCode(s.getEtapeCode());
+                        d.setCurrentStepOrder(s.getOrdre());
+                        d.setEtapeActuelle(s.getLibelle());
+                    } else {
+                        s.setStatut(StepStatus.EN_ATTENTE);
+                    }
+                }
+                stepRepo.saveAll(steps);
+                dossierRepo.save(d);
+                log.info("Dossier {} ({}) synchronise a l'etape 4 (CRI)", d.getReference(), d.getNomEntreprise());
+            }
+            // Cas B : Dossier Tribunal de Commerce (ex: Maison Zayna) -> ordre 5 (REGISTRE_COMMERCE Tribunal)
+            else if (nom.contains("zayna") || ref.contains("04836") || etape.contains("registre") || etape.contains("tribunal") || code.contains("COMMERCE") || code.contains("TRIBUNAL")) {
+                for (SuiviEtape s : steps) {
+                    if (s.getOrdre() < 5) {
+                        s.setStatut(StepStatus.VALIDEE);
+                        if (s.getDecidedAt() == null) s.setDecidedAt(Instant.now().minus(2, ChronoUnit.DAYS));
+                    } else if (s.getOrdre() == 5) {
+                        s.setStatut(StepStatus.EN_COURS);
+                        s.setOrganismeCode("TRIBUNAL");
+                        if (s.getStartedAt() == null) s.setStartedAt(Instant.now().minus(1, ChronoUnit.DAYS));
+                        d.setCurrentStepCode(s.getEtapeCode());
+                        d.setCurrentStepOrder(s.getOrdre());
+                        d.setEtapeActuelle(s.getLibelle());
+                    } else {
+                        s.setStatut(StepStatus.EN_ATTENTE);
+                    }
+                }
+                stepRepo.saveAll(steps);
+                dossierRepo.save(d);
+                log.info("Dossier {} ({}) synchronise a l'etape 5 (TRIBUNAL)", d.getReference(), d.getNomEntreprise());
+            }
+            // Cas C : Dossier OMPIC (ex: MedTech Solutions) -> ordre 1 (CERTIFICAT_NEGATIF)
+            else if (nom.contains("medtech") || ref.contains("04850") || etape.contains("certificat") || etape.contains("negatif") || code.contains("NEGATIF") || code.contains("OMPIC")) {
+                for (SuiviEtape s : steps) {
+                    if (s.getOrdre() == 1) {
+                        s.setStatut(StepStatus.EN_COURS);
+                        s.setOrganismeCode("OMPIC");
+                        if (s.getStartedAt() == null) s.setStartedAt(Instant.now().minus(1, ChronoUnit.DAYS));
+                        d.setCurrentStepCode(s.getEtapeCode());
+                        d.setCurrentStepOrder(s.getOrdre());
+                        d.setEtapeActuelle(s.getLibelle());
+                    } else if (s.getOrdre() > 1 && s.getStatut() == StepStatus.EN_COURS) {
+                        s.setStatut(StepStatus.EN_ATTENTE);
+                    }
+                }
+                stepRepo.saveAll(steps);
+                dossierRepo.save(d);
+                log.info("Dossier {} ({}) synchronise a l'etape 1 (OMPIC)", d.getReference(), d.getNomEntreprise());
+            }
+        }
+    }
+
+    private void ensureSeededDossierData(
+            DossierRepository dossierRepository,
+            SuiviEtapeRepository stepRepository,
+            DocumentRepository documentRepository,
+            AuditEventRepository auditEventRepository,
+            UtilisateurRepository utilisateurRepository
+    ) {
+        List<Utilisateur> agents = utilisateurRepository.findByRole(RoleUtilisateur.AGENT);
+        for (Dossier dossier : dossierRepository.findAll()) {
+            if (!dossier.getReference().startsWith("FND-2025-048")) continue;
+            if (dossier.getSubmittedAt() == null && dossier.getStatut() != DossierStatus.BROUILLON) {
+                dossier.setSubmittedAt(dossier.getCreatedAt() != null
+                        ? dossier.getCreatedAt()
+                        : Instant.now().minus(1, ChronoUnit.DAYS));
+                dossierRepository.save(dossier);
+            }
+
+            List<SuiviEtape> steps = stepRepository.findByDossierIdOrderByOrdreAsc(dossier.getId());
+            Set<UUID> auditedSteps = new HashSet<>();
+            auditEventRepository.findByDossierIdOrderByOccurredAtDesc(dossier.getId()).stream()
+                    .map(AuditEvent::getStepTrackingId)
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(auditedSteps::add);
+
+            for (SuiviEtape step : steps) {
+                if ((step.getStatut() != StepStatus.VALIDEE && step.getStatut() != StepStatus.REJETEE)
+                        || step.getActionOwner() != ActorType.AGENT) continue;
+
+                Utilisateur agent = agents.stream()
+                        .filter(candidate -> step.getOrganismeCode() != null
+                                && step.getOrganismeCode().equalsIgnoreCase(candidate.getOrganisme()))
+                        .findFirst()
+                        .orElse(null);
+                if (step.getAgent() == null && agent != null) step.setAgent(agent);
+                if (step.getDecidedAt() == null) step.setDecidedAt(Instant.now().minus(2, ChronoUnit.DAYS));
+                stepRepository.save(step);
+
+                if (!auditedSteps.contains(step.getId())) {
+                    AuditEventAction action = step.getStatut() == StepStatus.REJETEE
+                            ? AuditEventAction.ETAPE_REJETEE
+                            : AuditEventAction.ETAPE_VALIDEE;
+                    String actorName = agent == null ? "Agent " + step.getOrganismeCode()
+                            : agent.getPrenom() + " " + agent.getNom();
+                    auditEventRepository.save(new AuditEvent(
+                            dossier,
+                            action,
+                            ActorType.AGENT,
+                            agent,
+                            actorName,
+                            step.getId(),
+                            step.getMotifRejet(),
+                            "Décision de démonstration — " + step.getLibelle()
+                    ));
+                    auditedSteps.add(step.getId());
+                }
+            }
+
+            if (dossier.getStatut() != DossierStatus.EN_COURS
+                    && dossier.getStatut() != DossierStatus.SOUMIS
+                    && dossier.getStatut() != DossierStatus.A_CORRIGER) continue;
+            List<String> documentTypes = switch (dossier.getCurrentStepCode() == null ? "" : dossier.getCurrentStepCode()) {
+                case "CERTIFICAT_NEGATIF" -> List.of("CIN", "JUSTIFICATIF_SIEGE");
+                case "DEPOT_CRI" -> {
+                    List<String> types = new ArrayList<>(List.of("CIN", "JUSTIFICATIF_SIEGE",
+                            "STATUTS_SIGNES", "FORMULAIRE_UNIQUE", "PV_NOMINATION_GERANT"));
+                    if (dossier.isCapitalBlockageRequired()) types.add("ATTESTATION_BLOCAGE_CAPITAL");
+                    yield types;
+                }
+                case "REGISTRE_COMMERCE" -> List.of("CIN", "JUSTIFICATIF_SIEGE",
+                        "STATUTS_SIGNES", "FORMULAIRE_UNIQUE", "PV_NOMINATION_GERANT");
+                default -> List.of("CIN");
+            };
+            for (String documentType : documentTypes) {
+                if (documentRepository.existsByDossierIdAndDocumentTypeCode(dossier.getId(), documentType)) continue;
+                createSeedDocument(documentRepository, dossier, documentType);
+            }
+        }
+    }
+
+    private void createSeedDocument(DocumentRepository documentRepository, Dossier dossier, String documentType) {
+        String fileName = documentType.toLowerCase() + "_demo.pdf";
+        String storedFileName = documentType + "_" + UUID.randomUUID() + ".pdf";
+        Path targetDirectory = Paths.get(uploadBaseDir, "dossiers", dossier.getId().toString()).toAbsolutePath().normalize();
+        Path targetFile = targetDirectory.resolve(storedFileName);
+        try {
+            Files.createDirectories(targetDirectory);
+            try (PDDocument pdf = new PDDocument()) {
+                PDPage page = new PDPage();
+                pdf.addPage(page);
+                try (PDPageContentStream content = new PDPageContentStream(pdf, page)) {
+                    content.beginText();
+                    content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 14);
+                    content.newLineAtOffset(52, 740);
+                    content.showText("FOUNDLY - DOCUMENT DE DEMONSTRATION");
+                    content.newLineAtOffset(0, -28);
+                    content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 11);
+                    content.showText("Dossier : " + dossier.getReference());
+                    content.newLineAtOffset(0, -18);
+                    content.showText("Entreprise : " + dossier.getNomEntreprise());
+                    content.newLineAtOffset(0, -18);
+                    content.showText("Piece : " + documentType);
+                    content.endText();
+                }
+                pdf.save(targetFile.toFile());
+            }
+        } catch (IOException exception) {
+            throw new IllegalStateException("Impossible de créer le document de démonstration " + fileName, exception);
+        }
+
+        DocumentEntity document = new DocumentEntity();
+        document.setDossier(dossier);
+        document.setDocumentTypeCode(documentType);
+        document.setOriginalFileName(fileName);
+        document.setStoredFileName(storedFileName);
+        document.setMimeType("application/pdf");
+        document.setFileSize(targetFile.toFile().length());
+        document.setSource(DocumentSource.UPLOADED);
+        document.setFilePath(targetFile.toString());
+        document.setUploadedBy(dossier.getEntrepreneur());
+        documentRepository.save(document);
     }
 
     // =========================================================
@@ -295,27 +567,40 @@ public class DataInitializer {
     }
 
     /**
-     * Corrige les valeurs d'organisme stockees en BDD qui utilisaient un nom libre
-     * au lieu du code d'organisme attendu par la requete de comptage activeAgentCount.
+     * Normalise les valeurs d'organisme pour tous les comptes AGENT.
+     * Utilise en priorité l'email officiel pour corriger toute donnée anormale en base.
      */
     private void migrateAgentOrganismeToCode(UtilisateurRepository repo) {
-        java.util.Map<String, String> mapping = new java.util.LinkedHashMap<>();
-        mapping.put("CRI Casablanca-Settat", "CRI");
-        mapping.put("Tribunal de commerce",  "TRIBUNAL");
-        mapping.put("Tribunaux de commerce", "TRIBUNAL");
-        mapping.put("Caisse Nationale de Securite Sociale", "CNSS");
-        mapping.put("Office Marocain de la Propriete Industrielle et Commerciale", "OMPIC");
-        mapping.put("Direction Generale des Impots", "DGI");
+        repo.findAll().stream()
+                .filter(u -> u.getRole() == RoleUtilisateur.AGENT)
+                .forEach(u -> {
+                    String email = u.getEmail() != null ? u.getEmail().toLowerCase() : "";
+                    String org = u.getOrganisme();
+                    String newCode = null;
 
-        mapping.forEach((oldValue, newCode) ->
-                repo.findAll().stream()
-                        .filter(u -> u.getRole() == RoleUtilisateur.AGENT
-                                && oldValue.equals(u.getOrganisme()))
-                        .forEach(u -> {
-                            u.setOrganisme(newCode);
-                            repo.save(u);
-                        })
-        );
+                    if (email.contains("ompic")) newCode = "OMPIC";
+                    else if (email.contains("cri")) newCode = "CRI";
+                    else if (email.contains("tribunal") || email.contains("justice")) newCode = "TRIBUNAL";
+                    else if (email.contains("dgi") || email.contains("impot")) newCode = "DGI";
+                    else if (email.contains("cnss")) newCode = "CNSS";
+                    else if (email.contains("journal") || email.contains("annonce")) newCode = "JOURNAL";
+
+                    if (newCode == null && org != null) {
+                        String upper = org.toUpperCase().trim();
+                        if (upper.contains("CRI") || upper.contains("INVESTISSEMENT")) newCode = "CRI";
+                        else if (upper.contains("TRIBUNAL") || upper.contains("COMMERCE") || upper.contains("JUSTICE")) newCode = "TRIBUNAL";
+                        else if (upper.contains("CNSS") || upper.contains("SECURITE")) newCode = "CNSS";
+                        else if (upper.contains("OMPIC") || upper.contains("PROPRIET") || upper.contains("INDUSTRIEL")) newCode = "OMPIC";
+                        else if (upper.contains("DGI") || upper.contains("IMPOT") || upper.contains("FISC")) newCode = "DGI";
+                        else if (upper.contains("JOURNAL") || upper.contains("ANNONCE")) newCode = "JOURNAL";
+                    }
+
+                    if (newCode != null && !newCode.equalsIgnoreCase(org)) {
+                        u.setOrganisme(newCode);
+                        repo.save(u);
+                        log.info("Organisme de l'agent {} ({}) migre vers {}", u.getEmail(), org, newCode);
+                    }
+                });
     }
 
     private Utilisateur seedEntrepreneur(
@@ -376,7 +661,7 @@ public class DataInitializer {
         d.setUpdatedAt(Instant.now().minus(Math.max(1, daysAgo - 4), ChronoUnit.DAYS));
         Dossier saved = repo.save(d);
 
-        // Create workflow steps DIRECTLY (not via WorkflowEngineService to avoid deadlocks)
+        // Create workflow steps DIRECTLY
         List<SuiviEtape> steps = buildStepsForDossier(saved);
         steps = stepRepo.saveAll(steps);
 
@@ -420,9 +705,6 @@ public class DataInitializer {
         }
     }
 
-    /**
-     * Builds workflow steps for a dossier (mirrors WorkflowEngineService logic without @Transactional).
-     */
     private List<SuiviEtape> buildStepsForDossier(Dossier dossier) {
         List<SuiviEtape> steps = new ArrayList<>();
 

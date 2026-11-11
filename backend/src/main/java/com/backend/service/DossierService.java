@@ -22,4 +22,10 @@ public interface DossierService {
     SubmissionResultDto submitDossier(UUID dossierId, Utilisateur user);
 
     PagedAuditEventDto getAuditEvents(UUID dossierId, int page, int size, Utilisateur user);
+
+    /**
+     * Consultation d'un dossier par un agent administratif, sans restriction de propriété.
+     * Réf. CDC § 8.2 — Consultation des dossiers à traiter.
+     */
+    DossierDetailDto getDossierDetailForAgent(UUID dossierId, String organizationCode);
 }

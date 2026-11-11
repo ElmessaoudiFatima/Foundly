@@ -110,7 +110,7 @@ public class DocumentServiceImpl implements DocumentService {
             auditEventRepository.save(new AuditEvent(
                     dossier,
                     AuditEventAction.DOCUMENT_AJOUTE,
-                    ActorType.ENTREPRENEUR,
+                    currentUser.getRole() == RoleUtilisateur.AGENT ? ActorType.AGENT : ActorType.ENTREPRENEUR,
                     currentUser,
                     currentUser.getPrenom() + " " + currentUser.getNom(),
                     null,
@@ -394,7 +394,12 @@ public class DocumentServiceImpl implements DocumentService {
                 d.getUploadedAt(),
                 d.getUploadedBy().getId(),
                 d.getNote(),
-                contentUrl
+                contentUrl,
+                d.getReviewStatus(),
+                d.getReviewComment(),
+                d.getReviewedByAgent() == null ? null
+                        : d.getReviewedByAgent().getPrenom() + " " + d.getReviewedByAgent().getNom(),
+                d.getReviewedAt()
         );
     }
 }

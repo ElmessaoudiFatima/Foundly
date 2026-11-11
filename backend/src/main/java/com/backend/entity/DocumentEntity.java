@@ -1,6 +1,7 @@
 package com.backend.entity;
 
 import com.backend.enums.DocumentSource;
+import com.backend.enums.DocumentReviewStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -46,6 +47,20 @@ public class DocumentEntity {
     @Column(length = 500)
     private String note;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private DocumentReviewStatus reviewStatus = DocumentReviewStatus.A_VERIFIER;
+
+    @Column(length = 1000)
+    private String reviewComment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_agent_id")
+    private Utilisateur reviewedByAgent;
+
+    @Column
+    private Instant reviewedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by_id", nullable = false)
     private Utilisateur uploadedBy;
@@ -85,6 +100,18 @@ public class DocumentEntity {
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+
+    public DocumentReviewStatus getReviewStatus() { return reviewStatus; }
+    public void setReviewStatus(DocumentReviewStatus reviewStatus) { this.reviewStatus = reviewStatus; }
+
+    public String getReviewComment() { return reviewComment; }
+    public void setReviewComment(String reviewComment) { this.reviewComment = reviewComment; }
+
+    public Utilisateur getReviewedByAgent() { return reviewedByAgent; }
+    public void setReviewedByAgent(Utilisateur reviewedByAgent) { this.reviewedByAgent = reviewedByAgent; }
+
+    public Instant getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
 
     public Utilisateur getUploadedBy() { return uploadedBy; }
     public void setUploadedBy(Utilisateur uploadedBy) { this.uploadedBy = uploadedBy; }

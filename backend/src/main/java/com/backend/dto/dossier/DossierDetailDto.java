@@ -28,5 +28,17 @@ public record DossierDetailDto(
         Instant finalizedAt,
         Double checklistCompletionRate,
         UUID workflowVersionId,
-        List<StepTrackingDto> steps
-) {}
+        List<StepTrackingDto> steps,
+        String entrepreneurNom,
+        String entrepreneurEmail,
+        String entrepreneurCin,
+        String entrepreneurTelephone
+) {
+    // Getters alias pour compatibilité totale avec les interfaces frontend
+    public String getNomEntreprise() { return proposedCompanyName; }
+    public LegalFormCode getFormeJuridique() { return legalFormCode; }
+    public DossierStatus getStatut() { return status; }
+    public BigDecimal getCapitalMad() { return capitalAmountMad; }
+    public String getDescriptionActivite() { return activityDescription; }
+    public String getAdresseSiege() { return headOfficeAddress; }
+}
