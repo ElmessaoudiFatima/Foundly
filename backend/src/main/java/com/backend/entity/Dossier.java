@@ -49,6 +49,12 @@ public class Dossier {
     @Column(precision = 15, scale = 2)
     private BigDecimal capitalMad = BigDecimal.ZERO;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal valeurNominalePart = new BigDecimal("100.00");
+
+    @Column
+    private Long nombreTotalParts = 0L;
+
     @Column(nullable = false)
     private boolean capitalBlockageRequired = false;
 
@@ -77,6 +83,12 @@ public class Dossier {
     @OneToMany(mappedBy = "dossier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("ordre ASC")
     private List<SuiviEtape> steps = new ArrayList<>();
+
+    @OneToMany(mappedBy = "dossier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Associe> associes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "dossier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Gerant> gerants = new ArrayList<>();
 
     @OneToMany(mappedBy = "dossier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("uploadedAt DESC")
@@ -170,4 +182,16 @@ public class Dossier {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public BigDecimal getValeurNominalePart() { return valeurNominalePart; }
+    public void setValeurNominalePart(BigDecimal valeurNominalePart) { this.valeurNominalePart = valeurNominalePart; }
+
+    public Long getNombreTotalParts() { return nombreTotalParts; }
+    public void setNombreTotalParts(Long nombreTotalParts) { this.nombreTotalParts = nombreTotalParts; }
+
+    public List<Associe> getAssocies() { return associes; }
+    public void setAssocies(List<Associe> associes) { this.associes = associes; }
+
+    public List<Gerant> getGerants() { return gerants; }
+    public void setGerants(List<Gerant> gerants) { this.gerants = gerants; }
 }

@@ -21,8 +21,32 @@ public record DocumentResponseDto(
         DocumentReviewStatus reviewStatus,
         String reviewComment,
         String reviewedByAgentName,
-        Instant reviewedAt
+        Instant reviewedAt,
+        UUID associeId,
+        UUID gerantId
 ) {
+    public DocumentResponseDto(
+            UUID id,
+            String documentTypeCode,
+            String documentTypeLabel,
+            String fileName,
+            String mimeType,
+            Long sizeBytes,
+            DocumentSource source,
+            Instant uploadedAt,
+            UUID uploadedByUserId,
+            String note,
+            String contentUrl,
+            DocumentReviewStatus reviewStatus,
+            String reviewComment,
+            String reviewedByAgentName,
+            Instant reviewedAt
+    ) {
+        this(id, documentTypeCode, documentTypeLabel, fileName, mimeType, sizeBytes, source,
+                uploadedAt, uploadedByUserId, note, contentUrl, reviewStatus,
+                reviewComment, reviewedByAgentName, reviewedAt, null, null);
+    }
+
     public DocumentResponseDto(
             UUID id,
             String documentTypeCode,
@@ -38,6 +62,6 @@ public record DocumentResponseDto(
     ) {
         this(id, documentTypeCode, documentTypeLabel, fileName, mimeType, sizeBytes, source,
                 uploadedAt, uploadedByUserId, note, contentUrl, DocumentReviewStatus.A_VERIFIER,
-                null, null, null);
+                null, null, null, null, null);
     }
 }

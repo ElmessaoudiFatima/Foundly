@@ -13,6 +13,7 @@ import com.backend.service.DocumentService;
 import com.backend.service.DossierService;
 import com.backend.service.NotificationService;
 import com.backend.service.WorkflowEngineService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.Year;
 import java.util.*;
@@ -39,6 +41,33 @@ public class DossierServiceImpl implements DossierService {
     private final WorkflowEngineService workflowEngineService;
     private final NotificationService notificationService;
     private final DocumentService documentService;
+    private final AssocieRepository associeRepository;
+    private final GerantRepository gerantRepository;
+
+    @Autowired
+    public DossierServiceImpl(
+            DossierRepository dossierRepository,
+            SuiviEtapeRepository suiviEtapeRepository,
+            DocumentRepository documentRepository,
+            PaiementRepository paiementRepository,
+            AuditEventRepository auditEventRepository,
+            WorkflowEngineService workflowEngineService,
+            NotificationService notificationService,
+            DocumentService documentService,
+            AssocieRepository associeRepository,
+            GerantRepository gerantRepository
+    ) {
+        this.dossierRepository = dossierRepository;
+        this.suiviEtapeRepository = suiviEtapeRepository;
+        this.documentRepository = documentRepository;
+        this.paiementRepository = paiementRepository;
+        this.auditEventRepository = auditEventRepository;
+        this.workflowEngineService = workflowEngineService;
+        this.notificationService = notificationService;
+        this.documentService = documentService;
+        this.associeRepository = associeRepository;
+        this.gerantRepository = gerantRepository;
+    }
 
     public DossierServiceImpl(
             DossierRepository dossierRepository,
@@ -50,20 +79,21 @@ public class DossierServiceImpl implements DossierService {
             NotificationService notificationService,
             DocumentService documentService
     ) {
-        this.dossierRepository = dossierRepository;
-        this.suiviEtapeRepository = suiviEtapeRepository;
-        this.documentRepository = documentRepository;
-        this.paiementRepository = paiementRepository;
-        this.auditEventRepository = auditEventRepository;
-        this.workflowEngineService = workflowEngineService;
-        this.notificationService = notificationService;
-        this.documentService = documentService;
+        this(dossierRepository, suiviEtapeRepository, documentRepository, paiementRepository,
+                auditEventRepository, workflowEngineService, notificationService, documentService, null, null);
     }
 
     @Override
     @Transactional
     public DossierDetailDto createDossier(DossierCreateRequest request, Utilisateur entrepreneur) {
         BigDecimal capital = request.capitalAmountMad() != null ? request.capitalAmountMad() : BigDecimal.ZERO;
+        // RG-AE-01 : Le statut Auto-Entrepreneur ne requiert ni capital social ni blocage bancaire.
+        if (request.legalFormCode() == LegalFormCode.AUTO_ENTREPRENEUR) {
+            capital = BigDecimal.ZERO;
+        } else if (request.legalFormCode() == LegalFormCode.SARL) {
+            // Validation spécifique SARL du capital et de la valeur nominale
+            validateSarlCapitalAndNominal(capital, request.valeurNominalePart());
+        }
         boolean blockageRequired = computeCapitalBlockageRequired(request.legalFormCode(), capital);
 
         Dossier dossier = new Dossier();
@@ -73,6 +103,11 @@ public class DossierServiceImpl implements DossierService {
         dossier.setStatut(DossierStatus.BROUILLON);
         dossier.setRegion(request.region());
         dossier.setCapitalMad(capital);
+        if (request.legalFormCode() == LegalFormCode.SARL) {
+            BigDecimal valNominale = request.valeurNominalePart() != null ? request.valeurNominalePart() : new BigDecimal("100.00");
+            dossier.setValeurNominalePart(valNominale);
+            dossier.setNombreTotalParts(capital.divide(valNominale, RoundingMode.UNNECESSARY).longValue());
+        }
         dossier.setCapitalBlockageRequired(blockageRequired);
         dossier.setDescriptionActivite(request.activityDescription());
         dossier.setAdresseSiege(request.headOfficeAddress());
@@ -80,6 +115,12 @@ public class DossierServiceImpl implements DossierService {
         dossier.setWorkflowVersionId(UUID.randomUUID());
 
         Dossier saved = dossierRepository.save(dossier);
+
+        // Traitement des associés et gérants SARL
+        if (request.legalFormCode() == LegalFormCode.SARL && request.associes() != null) {
+            processSarlAssociatesAndManagers(saved, request.valeurNominalePart(), request.associes(), request.gerants());
+            saved = dossierRepository.save(saved);
+        }
 
         // Initialiser la séquence des étapes de workflow
         List<SuiviEtape> steps = workflowEngineService.initializeStepsForDossier(saved);
@@ -176,9 +217,26 @@ public class DossierServiceImpl implements DossierService {
             dossier.setDescriptionActivite(request.activityDescription());
         }
 
-        if (request.capitalAmountMad() != null) {
-            dossier.setCapitalMad(request.capitalAmountMad());
-            boolean blockageRequired = computeCapitalBlockageRequired(dossier.getFormeJuridique(), request.capitalAmountMad());
+        if (dossier.getFormeJuridique() == LegalFormCode.SARL) {
+            BigDecimal newCap = request.capitalAmountMad() != null ? request.capitalAmountMad() : dossier.getCapitalMad();
+            BigDecimal newNom = request.valeurNominalePart() != null ? request.valeurNominalePart()
+                    : (dossier.getValeurNominalePart() != null ? dossier.getValeurNominalePart() : new BigDecimal("100.00"));
+            validateSarlCapitalAndNominal(newCap, newNom);
+            dossier.setCapitalMad(newCap);
+            dossier.setValeurNominalePart(newNom);
+            dossier.setNombreTotalParts(newCap.divide(newNom, RoundingMode.UNNECESSARY).longValue());
+            dossier.setCapitalBlockageRequired(computeCapitalBlockageRequired(LegalFormCode.SARL, newCap));
+
+            if (request.associes() != null) {
+                updateSarlAssociatesAndManagers(dossier, request.valeurNominalePart(), request.associes(), request.gerants(), user);
+            }
+        } else if (request.capitalAmountMad() != null) {
+            // RG-AE-01 : Le capital est toujours 0 pour un Auto-Entrepreneur.
+            BigDecimal newCap = dossier.getFormeJuridique() == LegalFormCode.AUTO_ENTREPRENEUR
+                    ? BigDecimal.ZERO
+                    : request.capitalAmountMad();
+            dossier.setCapitalMad(newCap);
+            boolean blockageRequired = computeCapitalBlockageRequired(dossier.getFormeJuridique(), newCap);
             dossier.setCapitalBlockageRequired(blockageRequired);
         }
 
@@ -427,6 +485,23 @@ public class DossierServiceImpl implements DossierService {
             }
         }
 
+        List<AssocieDto> associeDtos = d.getAssocies() == null ? List.of() : d.getAssocies().stream()
+                .filter(Associe::isActif)
+                .map(a -> new AssocieDto(
+                        a.getId(), a.getNom(), a.getPrenom(), a.getCinOuPasseport(),
+                        a.getNationalite(), a.getAdresse(), a.getNombreParts(),
+                        a.getMontantApport(), a.getPourcentageDetention(), a.isActif()
+                )).toList();
+
+        List<GerantDto> gerantDtos = d.getGerants() == null ? List.of() : d.getGerants().stream()
+                .filter(Gerant::isActif)
+                .map(g -> new GerantDto(
+                        g.getId(), g.getAssocie() != null ? g.getAssocie().getId() : null,
+                        g.isEstAssocie(), g.getNom(), g.getPrenom(), g.getCinOuPasseport(),
+                        g.getNationalite(), g.getAdresse(), g.getModeNomination(),
+                        g.getDureeMandat(), g.getPouvoirs(), g.isActif()
+                )).toList();
+
         return new DossierDetailDto(
                 d.getId(),
                 d.getReference(),
@@ -452,7 +527,11 @@ public class DossierServiceImpl implements DossierService {
                 entNom,
                 entEmail,
                 entCin,
-                entTel
+                entTel,
+                d.getValeurNominalePart(),
+                d.getNombreTotalParts(),
+                associeDtos,
+                gerantDtos
         );
     }
 
@@ -489,6 +568,283 @@ public class DossierServiceImpl implements DossierService {
             return JSON.readValue(value, type);
         } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
             throw new IllegalStateException("Impossible de lire les données de validation d'une étape.", exception);
+        }
+    }
+
+    private void validateSarlCapitalAndNominal(BigDecimal capital, BigDecimal valNominale) {
+        if (capital == null || capital.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidDossierStateException("Le capital d'une SARL doit être strictement supérieur à zéro.");
+        }
+        BigDecimal nominal = valNominale != null ? valNominale : new BigDecimal("100.00");
+        if (nominal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidDossierStateException("La valeur nominale des parts sociales doit être strictement positive.");
+        }
+        if (capital.remainder(nominal).compareTo(BigDecimal.ZERO) != 0) {
+            throw new InvalidDossierStateException("Le capital social (" + capital + " MAD) doit être un multiple exact de la valeur nominale des parts (" + nominal + " MAD).");
+        }
+    }
+
+    private void processSarlAssociatesAndManagers(Dossier dossier, BigDecimal requestNominal, List<AssocieDto> associeDtos, List<GerantDto> gerantDtos) {
+        if (associeDtos == null || associeDtos.size() < 2 || associeDtos.size() > 50) {
+            throw new InvalidDossierStateException("Une SARL doit comporter entre 2 et 50 associés (règle fonctionnelle de séparation SARL / SARL-AU).");
+        }
+        BigDecimal nominal = requestNominal != null ? requestNominal
+                : (dossier.getValeurNominalePart() != null ? dossier.getValeurNominalePart() : new BigDecimal("100.00"));
+        long totalParts = dossier.getNombreTotalParts() != null && dossier.getNombreTotalParts() > 0
+                ? dossier.getNombreTotalParts()
+                : dossier.getCapitalMad().divide(nominal, RoundingMode.UNNECESSARY).longValue();
+
+        long sumParts = 0;
+        BigDecimal sumApports = BigDecimal.ZERO;
+        List<Associe> savedAssocies = new ArrayList<>();
+
+        for (AssocieDto dto : associeDtos) {
+            if (dto.nombreParts() == null || dto.nombreParts() < 1) {
+                throw new InvalidDossierStateException("Chaque associé doit détenir au moins une part sociale.");
+            }
+            sumParts += dto.nombreParts();
+            BigDecimal apport = nominal.multiply(BigDecimal.valueOf(dto.nombreParts()));
+            sumApports = sumApports.add(apport);
+            BigDecimal pourcentage = BigDecimal.valueOf(dto.nombreParts())
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(totalParts), 2, RoundingMode.HALF_UP);
+
+            Associe associe = new Associe(
+                    dossier,
+                    dto.nom(),
+                    dto.prenom(),
+                    dto.cinOuPasseport(),
+                    dto.nationalite(),
+                    dto.adresse(),
+                    dto.nombreParts(),
+                    apport,
+                    pourcentage
+            );
+            associe.setActif(true);
+            savedAssocies.add(associeRepository.save(associe));
+        }
+
+        if (sumParts != totalParts) {
+            throw new InvalidDossierStateException("La somme des parts des associés (" + sumParts + ") doit être exactement égale au nombre total de parts (" + totalParts + ").");
+        }
+        if (sumApports.compareTo(dossier.getCapitalMad()) != 0) {
+            throw new InvalidDossierStateException("La somme des apports des associés (" + sumApports + " MAD) doit être égale au capital social (" + dossier.getCapitalMad() + " MAD).");
+        }
+        dossier.setAssocies(savedAssocies);
+
+        // Gérance
+        if (gerantDtos != null) {
+            if (gerantDtos.isEmpty()) {
+                throw new InvalidDossierStateException("Au moins un gérant doit être désigné pour la SARL.");
+            }
+            List<Gerant> savedGerants = new ArrayList<>();
+            for (GerantDto gDto : gerantDtos) {
+                Gerant gerant = new Gerant();
+                gerant.setDossier(dossier);
+                gerant.setEstAssocie(gDto.estAssocie());
+                gerant.setModeNomination(gDto.modeNomination() != null ? gDto.modeNomination() : ModeNominationGerant.STATUTAIRE);
+                gerant.setDureeMandat(gDto.dureeMandat() != null ? gDto.dureeMandat() : "Indéterminée");
+                gerant.setPouvoirs(gDto.pouvoirs());
+                gerant.setActif(true);
+
+                if (gDto.estAssocie()) {
+                    Associe matchedAssocie = savedAssocies.stream()
+                            .filter(a -> (gDto.associeId() != null && gDto.associeId().equals(a.getId()))
+                                    || (a.getCinOuPasseport() != null && a.getCinOuPasseport().equalsIgnoreCase(gDto.cinOuPasseport())))
+                            .findFirst()
+                            .orElseThrow(() -> new InvalidDossierStateException("Le gérant associé doit obligatoirement correspondre à un associé du même dossier."));
+                    gerant.setAssocie(matchedAssocie);
+                    gerant.setNom(matchedAssocie.getNom());
+                    gerant.setPrenom(matchedAssocie.getPrenom());
+                    gerant.setCinOuPasseport(matchedAssocie.getCinOuPasseport());
+                    gerant.setNationalite(matchedAssocie.getNationalite());
+                    gerant.setAdresse(matchedAssocie.getAdresse());
+                } else {
+                    if (gDto.associeId() != null) {
+                        throw new InvalidDossierStateException("Un gérant non associé ne peut pas référencer un associé.");
+                    }
+                    if (gDto.nom() == null || gDto.nom().isBlank() || gDto.prenom() == null || gDto.prenom().isBlank()
+                            || gDto.cinOuPasseport() == null || gDto.cinOuPasseport().isBlank()
+                            || gDto.nationalite() == null || gDto.nationalite().isBlank()
+                            || gDto.adresse() == null || gDto.adresse().isBlank()) {
+                        throw new InvalidDossierStateException("Toutes les informations d'identification du gérant tiers sont obligatoires.");
+                    }
+                    gerant.setNom(gDto.nom());
+                    gerant.setPrenom(gDto.prenom());
+                    gerant.setCinOuPasseport(gDto.cinOuPasseport());
+                    gerant.setNationalite(gDto.nationalite());
+                    gerant.setAdresse(gDto.adresse());
+                }
+                savedGerants.add(gerantRepository.save(gerant));
+            }
+            dossier.setGerants(savedGerants);
+        }
+    }
+
+    private void updateSarlAssociatesAndManagers(Dossier dossier, BigDecimal requestNominal, List<AssocieDto> associeDtos, List<GerantDto> gerantDtos, Utilisateur user) {
+        if (associeDtos == null || associeDtos.size() < 2 || associeDtos.size() > 50) {
+            throw new InvalidDossierStateException("Une SARL doit comporter entre 2 et 50 associés (règle fonctionnelle de séparation SARL / SARL-AU).");
+        }
+        BigDecimal nominal = requestNominal != null ? requestNominal
+                : (dossier.getValeurNominalePart() != null ? dossier.getValeurNominalePart() : new BigDecimal("100.00"));
+        long totalParts = dossier.getNombreTotalParts() != null && dossier.getNombreTotalParts() > 0
+                ? dossier.getNombreTotalParts()
+                : dossier.getCapitalMad().divide(nominal, RoundingMode.UNNECESSARY).longValue();
+
+        long sumParts = 0;
+        BigDecimal sumApports = BigDecimal.ZERO;
+
+        List<Associe> existingAssocies = associeRepository.findByDossierId(dossier.getId());
+        List<Associe> updatedAssocies = new ArrayList<>();
+
+        // Repérer et désactiver logiquement les associés retirés (RG12)
+        Set<String> newCins = new HashSet<>();
+        Set<UUID> newIds = new HashSet<>();
+        for (AssocieDto dto : associeDtos) {
+            if (dto.cinOuPasseport() != null) newCins.add(dto.cinOuPasseport().toLowerCase());
+            if (dto.id() != null) newIds.add(dto.id());
+        }
+
+        for (Associe existing : existingAssocies) {
+            boolean retained = (existing.getId() != null && newIds.contains(existing.getId()))
+                    || (existing.getCinOuPasseport() != null && newCins.contains(existing.getCinOuPasseport().toLowerCase()));
+            if (!retained && existing.isActif()) {
+                existing.setActif(false);
+                associeRepository.save(existing);
+                // Audit RG12
+                auditEventRepository.save(new AuditEvent(
+                        dossier,
+                        AuditEventAction.DOSSIER_MODIFIE,
+                        ActorType.ENTREPRENEUR,
+                        user,
+                        user.getPrenom() + " " + user.getNom(),
+                        null,
+                        null,
+                        "Retrait de l'associé " + existing.getPrenom() + " " + existing.getNom()
+                                + " (CIN: " + existing.getCinOuPasseport() + ") du dossier."
+                ));
+                // Si un gérant référençait cet associé, le désactiver également
+                List<Gerant> gerantsLies = gerantRepository.findByDossierId(dossier.getId());
+                for (Gerant g : gerantsLies) {
+                    if (g.getAssocie() != null && g.getAssocie().getId().equals(existing.getId()) && g.isActif()) {
+                        g.setActif(false);
+                        gerantRepository.save(g);
+                    }
+                }
+            }
+        }
+
+        // Mettre à jour ou ajouter les associés actifs
+        for (AssocieDto dto : associeDtos) {
+            if (dto.nombreParts() == null || dto.nombreParts() < 1) {
+                throw new InvalidDossierStateException("Chaque associé doit détenir au moins une part sociale.");
+            }
+            sumParts += dto.nombreParts();
+            BigDecimal apport = nominal.multiply(BigDecimal.valueOf(dto.nombreParts()));
+            sumApports = sumApports.add(apport);
+            BigDecimal pourcentage = BigDecimal.valueOf(dto.nombreParts())
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(totalParts), 2, RoundingMode.HALF_UP);
+
+            Associe associe = existingAssocies.stream()
+                    .filter(a -> (dto.id() != null && dto.id().equals(a.getId()))
+                            || (dto.cinOuPasseport() != null && dto.cinOuPasseport().equalsIgnoreCase(a.getCinOuPasseport())))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Associe newA = new Associe();
+                        newA.setDossier(dossier);
+                        return newA;
+                    });
+
+            associe.setNom(dto.nom());
+            associe.setPrenom(dto.prenom());
+            associe.setCinOuPasseport(dto.cinOuPasseport());
+            associe.setNationalite(dto.nationalite());
+            associe.setAdresse(dto.adresse());
+            associe.setNombreParts(dto.nombreParts());
+            associe.setMontantApport(apport);
+            associe.setPourcentageDetention(pourcentage);
+            associe.setActif(true);
+            updatedAssocies.add(associeRepository.save(associe));
+        }
+
+        if (sumParts != totalParts) {
+            throw new InvalidDossierStateException("La somme des parts des associés (" + sumParts + ") doit être exactement égale au nombre total de parts (" + totalParts + ").");
+        }
+        if (sumApports.compareTo(dossier.getCapitalMad()) != 0) {
+            throw new InvalidDossierStateException("La somme des apports des associés (" + sumApports + " MAD) doit être égale au capital social (" + dossier.getCapitalMad() + " MAD).");
+        }
+        dossier.setAssocies(updatedAssocies);
+
+        // Gérance
+        if (gerantDtos != null) {
+            if (gerantDtos.isEmpty()) {
+                throw new InvalidDossierStateException("Au moins un gérant doit être désigné pour la SARL.");
+            }
+            List<Gerant> existingGerants = gerantRepository.findByDossierId(dossier.getId());
+            List<Gerant> updatedGerants = new ArrayList<>();
+
+            Set<String> newGerantCins = new HashSet<>();
+            for (GerantDto gd : gerantDtos) {
+                if (gd.cinOuPasseport() != null) newGerantCins.add(gd.cinOuPasseport().toLowerCase());
+            }
+            for (Gerant eg : existingGerants) {
+                if (eg.getCinOuPasseport() != null && !newGerantCins.contains(eg.getCinOuPasseport().toLowerCase()) && eg.isActif()) {
+                    eg.setActif(false);
+                    gerantRepository.save(eg);
+                }
+            }
+
+            for (GerantDto gDto : gerantDtos) {
+                Gerant gerant = existingGerants.stream()
+                        .filter(g -> (gDto.id() != null && gDto.id().equals(g.getId()))
+                                || (gDto.cinOuPasseport() != null && gDto.cinOuPasseport().equalsIgnoreCase(g.getCinOuPasseport())))
+                        .findFirst()
+                        .orElseGet(() -> {
+                            Gerant newG = new Gerant();
+                            newG.setDossier(dossier);
+                            return newG;
+                        });
+
+                gerant.setEstAssocie(gDto.estAssocie());
+                gerant.setModeNomination(gDto.modeNomination() != null ? gDto.modeNomination() : ModeNominationGerant.STATUTAIRE);
+                gerant.setDureeMandat(gDto.dureeMandat() != null ? gDto.dureeMandat() : "Indéterminée");
+                gerant.setPouvoirs(gDto.pouvoirs());
+                gerant.setActif(true);
+
+                if (gDto.estAssocie()) {
+                    Associe matchedAssocie = updatedAssocies.stream()
+                            .filter(Associe::isActif)
+                            .filter(a -> (gDto.associeId() != null && gDto.associeId().equals(a.getId()))
+                                    || (a.getCinOuPasseport() != null && a.getCinOuPasseport().equalsIgnoreCase(gDto.cinOuPasseport())))
+                            .findFirst()
+                            .orElseThrow(() -> new InvalidDossierStateException("Le gérant associé doit obligatoirement correspondre à un associé du même dossier."));
+                    gerant.setAssocie(matchedAssocie);
+                    gerant.setNom(matchedAssocie.getNom());
+                    gerant.setPrenom(matchedAssocie.getPrenom());
+                    gerant.setCinOuPasseport(matchedAssocie.getCinOuPasseport());
+                    gerant.setNationalite(matchedAssocie.getNationalite());
+                    gerant.setAdresse(matchedAssocie.getAdresse());
+                } else {
+                    if (gDto.associeId() != null) {
+                        throw new InvalidDossierStateException("Un gérant non associé ne peut pas référencer un associé.");
+                    }
+                    if (gDto.nom() == null || gDto.nom().isBlank() || gDto.prenom() == null || gDto.prenom().isBlank()
+                            || gDto.cinOuPasseport() == null || gDto.cinOuPasseport().isBlank()
+                            || gDto.nationalite() == null || gDto.nationalite().isBlank()
+                            || gDto.adresse() == null || gDto.adresse().isBlank()) {
+                        throw new InvalidDossierStateException("Toutes les informations d'identification du gérant tiers sont obligatoires.");
+                    }
+                    gerant.setAssocie(null);
+                    gerant.setNom(gDto.nom());
+                    gerant.setPrenom(gDto.prenom());
+                    gerant.setCinOuPasseport(gDto.cinOuPasseport());
+                    gerant.setNationalite(gDto.nationalite());
+                    gerant.setAdresse(gDto.adresse());
+                }
+                updatedGerants.add(gerantRepository.save(gerant));
+            }
+            dossier.setGerants(updatedGerants);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.backend.enums;
 public enum AuditEventAction {
     DOSSIER_CREE,
     DOSSIER_SOUMIS,
+    DOSSIER_MODIFIE,
     DOCUMENT_AJOUTE,
     DOCUMENT_SUPPRIME,
     DOCUMENT_CONSULTE,

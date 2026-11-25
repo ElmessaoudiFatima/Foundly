@@ -12,5 +12,22 @@ public record ChecklistItemDto(
         UUID activeDocumentId,
         String activeDocumentName,
         boolean correctionRequired,
-        String correctionReason
-) {}
+        String correctionReason,
+        UUID associeId,
+        UUID gerantId
+) {
+    public ChecklistItemDto(
+            String documentTypeCode,
+            String label,
+            boolean required,
+            List<String> acceptedMimeTypes,
+            boolean submitted,
+            UUID activeDocumentId,
+            String activeDocumentName,
+            boolean correctionRequired,
+            String correctionReason
+    ) {
+        this(documentTypeCode, label, required, acceptedMimeTypes, submitted,
+                activeDocumentId, activeDocumentName, correctionRequired, correctionReason, null, null);
+    }
+}

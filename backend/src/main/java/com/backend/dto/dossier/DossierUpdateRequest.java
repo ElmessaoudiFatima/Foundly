@@ -1,10 +1,12 @@
 package com.backend.dto.dossier;
 
 import com.backend.enums.LegalFormCode;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record DossierUpdateRequest(
         LegalFormCode legalFormCode,
@@ -22,5 +24,22 @@ public record DossierUpdateRequest(
         BigDecimal capitalAmountMad,
 
         @Size(max = 500, message = "L'adresse du siège ne peut excéder 500 caractères.")
-        String headOfficeAddress
-) {}
+        String headOfficeAddress,
+
+        BigDecimal valeurNominalePart,
+
+        List<@Valid AssocieDto> associes,
+
+        List<@Valid GerantDto> gerants
+) {
+    public DossierUpdateRequest(
+            LegalFormCode legalFormCode,
+            String proposedCompanyName,
+            String region,
+            String activityDescription,
+            BigDecimal capitalAmountMad,
+            String headOfficeAddress
+    ) {
+        this(legalFormCode, proposedCompanyName, region, activityDescription, capitalAmountMad, headOfficeAddress, null, null, null);
+    }
+}

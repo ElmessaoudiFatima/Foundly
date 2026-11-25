@@ -45,11 +45,13 @@ public class DocumentController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("documentTypeCode") String documentTypeCode,
             @RequestParam(value = "note", required = false) String note,
+            @RequestParam(value = "associeId", required = false) UUID associeId,
+            @RequestParam(value = "gerantId", required = false) UUID gerantId,
             Authentication authentication
     ) {
         Utilisateur user = getAuthenticatedUser(authentication);
         assertAgentDossierAccess(dossierId, user);
-        DocumentResponseDto res = documentService.uploadDocument(dossierId, file, documentTypeCode, note, user);
+        DocumentResponseDto res = documentService.uploadDocument(dossierId, file, documentTypeCode, note, associeId, gerantId, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 

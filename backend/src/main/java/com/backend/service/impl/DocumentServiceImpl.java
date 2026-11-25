@@ -2,21 +2,26 @@ package com.backend.service.impl;
 
 import com.backend.dto.document.DocumentResponseDto;
 import com.backend.dto.dossier.ChecklistItemDto;
+import com.backend.entity.Associe;
 import com.backend.entity.AuditEvent;
 import com.backend.entity.DocumentEntity;
 import com.backend.entity.Dossier;
+import com.backend.entity.Gerant;
 import com.backend.entity.Utilisateur;
 import com.backend.enums.*;
 import com.backend.exception.*;
+import com.backend.repository.AssocieRepository;
 import com.backend.repository.AuditEventRepository;
 import com.backend.repository.DocumentRepository;
 import com.backend.repository.DossierRepository;
+import com.backend.repository.GerantRepository;
 import com.backend.service.DocumentService;
 import com.backend.service.PdfGenerationService;
 import com.backend.service.WorkflowEngineService;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -45,9 +50,30 @@ public class DocumentServiceImpl implements DocumentService {
     private final AuditEventRepository auditEventRepository;
     private final PdfGenerationService pdfGenerationService;
     private final WorkflowEngineService workflowEngineService;
+    private final AssocieRepository associeRepository;
+    private final GerantRepository gerantRepository;
 
     @Value("${foundly.upload.dir:./uploads}")
     private String uploadBaseDir;
+
+    @Autowired
+    public DocumentServiceImpl(
+            DocumentRepository documentRepository,
+            DossierRepository dossierRepository,
+            AuditEventRepository auditEventRepository,
+            PdfGenerationService pdfGenerationService,
+            WorkflowEngineService workflowEngineService,
+            AssocieRepository associeRepository,
+            GerantRepository gerantRepository
+    ) {
+        this.documentRepository = documentRepository;
+        this.dossierRepository = dossierRepository;
+        this.auditEventRepository = auditEventRepository;
+        this.pdfGenerationService = pdfGenerationService;
+        this.workflowEngineService = workflowEngineService;
+        this.associeRepository = associeRepository;
+        this.gerantRepository = gerantRepository;
+    }
 
     public DocumentServiceImpl(
             DocumentRepository documentRepository,
@@ -56,11 +82,8 @@ public class DocumentServiceImpl implements DocumentService {
             PdfGenerationService pdfGenerationService,
             WorkflowEngineService workflowEngineService
     ) {
-        this.documentRepository = documentRepository;
-        this.dossierRepository = dossierRepository;
-        this.auditEventRepository = auditEventRepository;
-        this.pdfGenerationService = pdfGenerationService;
-        this.workflowEngineService = workflowEngineService;
+        this(documentRepository, dossierRepository, auditEventRepository,
+                pdfGenerationService, workflowEngineService, null, null);
     }
 
     @Override
@@ -72,10 +95,48 @@ public class DocumentServiceImpl implements DocumentService {
             String note,
             Utilisateur currentUser
     ) {
+        return uploadDocument(dossierId, file, documentTypeCode, note, null, null, currentUser);
+    }
+
+    @Override
+    @Transactional
+    public DocumentResponseDto uploadDocument(
+            UUID dossierId,
+            MultipartFile file,
+            String documentTypeCode,
+            String note,
+            UUID associeId,
+            UUID gerantId,
+            Utilisateur currentUser
+    ) {
         Dossier dossier = getDossierAndCheckAccess(dossierId, currentUser);
 
         if (dossier.getStatut() == DossierStatus.FINALISE) {
             throw new InvalidDossierStateException("Impossible de modifier ou d'ajouter des documents sur un dossier finalisé.");
+        }
+
+        // P-02 : Exclusivité de rattachement
+        if (associeId != null && gerantId != null) {
+            throw new InvalidDossierStateException("Un document ne peut pas être rattaché simultanément à un associé et à un gérant.");
+        }
+
+        // P-03 : Étanchéité inter-dossiers (403)
+        Associe associe = null;
+        if (associeId != null) {
+            associe = associeRepository.findById(associeId)
+                    .orElseThrow(() -> new DossierNotFoundException("Associé introuvable : " + associeId));
+            if (!associe.getDossier().getId().equals(dossierId)) {
+                throw new UnauthorizedDossierAccessException("L'associé spécifié n'appartient pas à ce dossier (403).");
+            }
+        }
+
+        Gerant gerant = null;
+        if (gerantId != null) {
+            gerant = gerantRepository.findById(gerantId)
+                    .orElseThrow(() -> new DossierNotFoundException("Gérant introuvable : " + gerantId));
+            if (!gerant.getDossier().getId().equals(dossierId)) {
+                throw new UnauthorizedDossierAccessException("Le gérant spécifié n'appartient pas à ce dossier (403).");
+            }
         }
 
         validateUploadedFile(file);
@@ -103,10 +164,14 @@ public class DocumentServiceImpl implements DocumentService {
             entity.setNote(note);
             entity.setUploadedBy(currentUser);
             entity.setUploadedAt(Instant.now());
+            entity.setAssocie(associe);
+            entity.setGerant(gerant);
 
             DocumentEntity saved = documentRepository.save(entity);
 
             // Audit
+            String cibleLabel = associe != null ? " (Associé: " + associe.getPrenom() + " " + associe.getNom() + ")"
+                    : gerant != null ? " (Gérant tiers: " + gerant.getPrenom() + " " + gerant.getNom() + ")" : "";
             auditEventRepository.save(new AuditEvent(
                     dossier,
                     AuditEventAction.DOCUMENT_AJOUTE,
@@ -115,7 +180,7 @@ public class DocumentServiceImpl implements DocumentService {
                     currentUser.getPrenom() + " " + currentUser.getNom(),
                     null,
                     null,
-                    "Ajout de la pièce : " + originalName + " (Type : " + documentTypeCode + ")"
+                    "Ajout de la pièce : " + originalName + " (Type : " + documentTypeCode + ")" + cibleLabel
             ));
 
             // Si c'est l'attestation de blocage du capital social, validation automatique de l'étape 3 (RG15)
@@ -268,8 +333,28 @@ public class DocumentServiceImpl implements DocumentService {
 
         List<ChecklistItemDto> items = new ArrayList<>();
 
-        // 1. Pièce d'identité CIN (toujours obligatoire)
-        items.add(buildChecklistItem("CIN", "Carte Nationale d'Identité (CIN / Passeport / Séjour)", true, uploadedDocs, dossier));
+        // 1. Pièce(s) d'identité CIN
+        if (dossier.getFormeJuridique() == LegalFormCode.SARL
+                && dossier.getAssocies() != null
+                && dossier.getAssocies().stream().anyMatch(Associe::isActif)) {
+            // Pour chaque associé actif, exiger sa propre CIN
+            for (Associe associe : dossier.getAssocies().stream().filter(Associe::isActif).toList()) {
+                String label = "Carte Nationale d'Identité — Associé : " + associe.getPrenom() + " " + associe.getNom()
+                        + " (CIN: " + associe.getCinOuPasseport() + ")";
+                items.add(buildChecklistItemForAssocie("CIN", label, true, uploadedDocs, dossier, associe));
+            }
+            // Pour chaque gérant tiers actif (non associé), exiger sa propre CIN
+            if (dossier.getGerants() != null) {
+                for (Gerant gerant : dossier.getGerants().stream().filter(Gerant::isActif).filter(g -> !g.isEstAssocie()).toList()) {
+                    String label = "Carte Nationale d'Identité — Gérant tiers : " + gerant.getPrenom() + " " + gerant.getNom()
+                            + " (CIN: " + gerant.getCinOuPasseport() + ")";
+                    items.add(buildChecklistItemForGerant("CIN", label, true, uploadedDocs, dossier, gerant));
+                }
+            }
+        } else {
+            // Auto-Entrepreneur, SARL-AU, SA ou brouillon sans associés initialisés
+            items.add(buildChecklistItem("CIN", "Carte Nationale d'Identité (CIN / Passeport / Séjour)", true, uploadedDocs, dossier));
+        }
 
         // 2. Justificatif de siège social (toujours obligatoire)
         items.add(buildChecklistItem("JUSTIFICATIF_SIEGE", "Justificatif du siège social (Contrat de bail ou attestation de domiciliation)", true, uploadedDocs, dossier));
@@ -284,6 +369,16 @@ public class DocumentServiceImpl implements DocumentService {
                 items.add(buildChecklistItem("ATTESTATION_BLOCAGE_CAPITAL", "Attestation bancaire de blocage du capital social (capital > 100 000 MAD)", true, uploadedDocs, dossier));
             } else {
                 items.add(buildChecklistItem("ATTESTATION_BLOCAGE_CAPITAL", "Attestation bancaire de blocage (Non requise — dispense légale <= 100 000 MAD)", false, uploadedDocs, dossier));
+            }
+
+            // PV de nomination de la gérance si au moins un gérant est nommé par acte séparé
+            if (dossier.getFormeJuridique() == LegalFormCode.SARL && dossier.getGerants() != null) {
+                boolean hasActeSepare = dossier.getGerants().stream()
+                        .filter(Gerant::isActif)
+                        .anyMatch(g -> g.getModeNomination() == ModeNominationGerant.ACTE_SEPARE);
+                if (hasActeSepare) {
+                    items.add(buildChecklistItem("PV_NOMINATION_GERANT", "Procès-verbal de nomination de la gérance (Acte séparé)", true, uploadedDocs, dossier));
+                }
             }
         } else {
             // Auto-Entrepreneur
@@ -300,11 +395,10 @@ public class DocumentServiceImpl implements DocumentService {
             List<DocumentEntity> uploadedDocs,
             Dossier dossier
     ) {
-        // Un modèle Foundly est une aide au remplissage : seul un document ensuite téléversé
-        // par l'entrepreneur peut satisfaire une pièce de la checklist (notamment les statuts signés).
         DocumentEntity activeDoc = uploadedDocs.stream()
                 .filter(d -> d.getSource() == DocumentSource.UPLOADED)
                 .filter(d -> d.getDocumentTypeCode().equalsIgnoreCase(code))
+                .filter(d -> d.getAssocie() == null && d.getGerant() == null)
                 .max(Comparator.comparing(DocumentEntity::getUploadedAt))
                 .orElse(null);
 
@@ -313,7 +407,6 @@ public class DocumentServiceImpl implements DocumentService {
         String correctionReason = null;
 
         if (dossier.getStatut() == DossierStatus.A_CORRIGER && dossier.getRejectionReason() != null) {
-            // Si le motif de rejet mentionne le document ou type
             if (dossier.getRejectionReason().toLowerCase().contains(code.toLowerCase().replace("_", " "))
                     || dossier.getRejectionReason().toLowerCase().contains(label.toLowerCase())) {
                 correctionRequired = true;
@@ -330,7 +423,95 @@ public class DocumentServiceImpl implements DocumentService {
                 activeDoc != null ? activeDoc.getId() : null,
                 activeDoc != null ? activeDoc.getOriginalFileName() : null,
                 correctionRequired,
-                correctionReason
+                correctionReason,
+                null,
+                null
+        );
+    }
+
+    private ChecklistItemDto buildChecklistItemForAssocie(
+            String code,
+            String label,
+            boolean required,
+            List<DocumentEntity> uploadedDocs,
+            Dossier dossier,
+            Associe associe
+    ) {
+        DocumentEntity activeDoc = uploadedDocs.stream()
+                .filter(d -> d.getSource() == DocumentSource.UPLOADED)
+                .filter(d -> d.getDocumentTypeCode().equalsIgnoreCase(code))
+                .filter(d -> d.getAssocie() != null && d.getAssocie().getId().equals(associe.getId()))
+                .max(Comparator.comparing(DocumentEntity::getUploadedAt))
+                .orElse(null);
+
+        boolean submitted = activeDoc != null;
+        boolean correctionRequired = false;
+        String correctionReason = null;
+
+        if (dossier.getStatut() == DossierStatus.A_CORRIGER && dossier.getRejectionReason() != null) {
+            if (dossier.getRejectionReason().toLowerCase().contains(code.toLowerCase().replace("_", " "))
+                    || dossier.getRejectionReason().toLowerCase().contains(associe.getCinOuPasseport().toLowerCase())
+                    || dossier.getRejectionReason().toLowerCase().contains(associe.getNom().toLowerCase())) {
+                correctionRequired = true;
+                correctionReason = dossier.getRejectionReason();
+            }
+        }
+
+        return new ChecklistItemDto(
+                code,
+                label,
+                required,
+                List.of("application/pdf", "image/jpeg", "image/png"),
+                submitted,
+                activeDoc != null ? activeDoc.getId() : null,
+                activeDoc != null ? activeDoc.getOriginalFileName() : null,
+                correctionRequired,
+                correctionReason,
+                associe.getId(),
+                null
+        );
+    }
+
+    private ChecklistItemDto buildChecklistItemForGerant(
+            String code,
+            String label,
+            boolean required,
+            List<DocumentEntity> uploadedDocs,
+            Dossier dossier,
+            Gerant gerant
+    ) {
+        DocumentEntity activeDoc = uploadedDocs.stream()
+                .filter(d -> d.getSource() == DocumentSource.UPLOADED)
+                .filter(d -> d.getDocumentTypeCode().equalsIgnoreCase(code))
+                .filter(d -> d.getGerant() != null && d.getGerant().getId().equals(gerant.getId()))
+                .max(Comparator.comparing(DocumentEntity::getUploadedAt))
+                .orElse(null);
+
+        boolean submitted = activeDoc != null;
+        boolean correctionRequired = false;
+        String correctionReason = null;
+
+        if (dossier.getStatut() == DossierStatus.A_CORRIGER && dossier.getRejectionReason() != null) {
+            if (dossier.getRejectionReason().toLowerCase().contains(code.toLowerCase().replace("_", " "))
+                    || dossier.getRejectionReason().toLowerCase().contains(gerant.getCinOuPasseport().toLowerCase())
+                    || dossier.getRejectionReason().toLowerCase().contains(gerant.getNom().toLowerCase())) {
+                correctionRequired = true;
+                correctionReason = dossier.getRejectionReason();
+            }
+        }
+
+        return new ChecklistItemDto(
+                code,
+                label,
+                required,
+                List.of("application/pdf", "image/jpeg", "image/png"),
+                submitted,
+                activeDoc != null ? activeDoc.getId() : null,
+                activeDoc != null ? activeDoc.getOriginalFileName() : null,
+                correctionRequired,
+                correctionReason,
+                null,
+                gerant.getId()
         );
     }
 
@@ -399,7 +580,9 @@ public class DocumentServiceImpl implements DocumentService {
                 d.getReviewComment(),
                 d.getReviewedByAgent() == null ? null
                         : d.getReviewedByAgent().getPrenom() + " " + d.getReviewedByAgent().getNom(),
-                d.getReviewedAt()
+                d.getReviewedAt(),
+                d.getAssocie() != null ? d.getAssocie().getId() : null,
+                d.getGerant() != null ? d.getGerant().getId() : null
         );
     }
 }

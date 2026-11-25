@@ -165,6 +165,32 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
             dossier.setStatut(DossierStatus.EN_COURS);
             dossierRepository.save(dossier);
 
+            // Auto-validation des étapes ENTREPRENEUR non-interactives (RG-AE-02)
+            // Uniquement FORMULAIRE_INSCRIPTION : l'entrepreneur a déjà déposé les docs à la soumission.
+            if (ActorType.ENTREPRENEUR.equals(nextStep.getActionOwner())
+                    && "FORMULAIRE_INSCRIPTION".equals(nextStep.getEtapeCode())) {
+                nextStep.setStatut(StepStatus.VALIDEE);
+                nextStep.setDecidedAt(Instant.now());
+                suiviEtapeRepository.save(nextStep);
+
+                auditEventRepository.save(new AuditEvent(
+                        dossier,
+                        AuditEventAction.ETAPE_VALIDEE,
+                        ActorType.SYSTEME,
+                        null,
+                        "Système Foundly",
+                        nextStep.getId(),
+                        null,
+                        "Prise en compte technique : " + nextStep.getLibelle()
+                                + " — pièces justificatives transmises lors de la soumission. "
+                                + "Note : L'inscription administrative définitive reste soumise à la vérification d'identité et de conformité en agence."
+                ));
+
+                // Avancer vers l'étape suivante (CRI step 3) via appel récursif
+                advanceWorkflow(dossier, "Formulaire RNAE validé automatiquement", null);
+                return;
+            }
+
             notificationService.sendNotification(
                     dossier.getEntrepreneur(),
                     dossier,

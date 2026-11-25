@@ -19,6 +19,16 @@ public interface DocumentService {
             Utilisateur currentUser
     );
 
+    DocumentResponseDto uploadDocument(
+            UUID dossierId,
+            MultipartFile file,
+            String documentTypeCode,
+            String note,
+            UUID associeId,
+            UUID gerantId,
+            Utilisateur currentUser
+    );
+
     Resource getDocumentContent(UUID dossierId, UUID documentId, Utilisateur currentUser);
 
     DocumentResponseDto getDocumentMetadata(UUID dossierId, UUID documentId, Utilisateur currentUser);

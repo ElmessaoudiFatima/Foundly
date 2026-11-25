@@ -22,6 +22,14 @@ public class DocumentEntity {
     @JoinColumn(name = "dossier_id", nullable = false)
     private Dossier dossier;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "associe_id")
+    private Associe associe;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gerant_id")
+    private Gerant gerant;
+
     @Column(nullable = false, length = 50)
     private String documentTypeCode;
 
@@ -118,4 +126,10 @@ public class DocumentEntity {
 
     public Instant getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public Associe getAssocie() { return associe; }
+    public void setAssocie(Associe associe) { this.associe = associe; }
+
+    public Gerant getGerant() { return gerant; }
+    public void setGerant(Gerant gerant) { this.gerant = gerant; }
 }
