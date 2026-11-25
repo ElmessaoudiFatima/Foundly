@@ -118,14 +118,7 @@ public class AgentController {
             @PathVariable UUID id,
             Authentication authentication) {
         Utilisateur agent = resolveAgent(authentication);
-        agentService.assertDossierAccess(id, agent);
-        List<DocumentResponseDto> docs = documentRepository
-                .findByDossierIdOrderByUploadedAtDesc(id)
-                .stream()
-                .filter(d -> agentService.isDocumentTypeAllowedForAgent(d.getDocumentTypeCode(), agent))
-                .map(this::toDocumentResponse)
-                .toList();
-        return ResponseEntity.ok(docs);
+        return ResponseEntity.ok(agentService.getDossierDocuments(id, agent));
     }
 
     @GetMapping("/history/{id}")
@@ -142,12 +135,7 @@ public class AgentController {
             @PathVariable UUID id,
             Authentication authentication) {
         Utilisateur agent = resolveAgent(authentication);
-        agentService.assertHistoricalDossierAccess(id, agent);
-        List<DocumentResponseDto> documents = documentRepository.findByDossierIdOrderByUploadedAtDesc(id).stream()
-                .filter(document -> agentService.isDocumentTypeAllowedForAgent(document.getDocumentTypeCode(), agent))
-                .map(this::toDocumentResponse)
-                .toList();
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(agentService.getHistoricalDocuments(id, agent));
     }
 
     @GetMapping("/history/{id}/audit-events")
@@ -278,33 +266,5 @@ public class AgentController {
         UUID userId = UUID.fromString(principal.getUsername());
         return utilisateurRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Agent introuvable en base : " + userId));
-    }
-
-    private DocumentResponseDto toDocumentResponse(com.backend.entity.DocumentEntity document) {
-        String typeLabel = Arrays.stream(DocumentType.values())
-                .filter(type -> type.name().equals(document.getDocumentTypeCode()))
-                .map(DocumentType::getLabel)
-                .findFirst()
-                .orElse(document.getDocumentTypeCode());
-        String contentUrl = "/dossiers/" + document.getDossier().getId()
-                + "/documents/" + document.getId() + "/content";
-        return new DocumentResponseDto(
-                document.getId(),
-                document.getDocumentTypeCode(),
-                typeLabel,
-                document.getOriginalFileName(),
-                document.getMimeType(),
-                document.getFileSize(),
-                document.getSource(),
-                document.getUploadedAt(),
-                document.getUploadedBy().getId(),
-                document.getNote(),
-                contentUrl,
-                document.getReviewStatus(),
-                document.getReviewComment(),
-                document.getReviewedByAgent() == null ? null
-                        : document.getReviewedByAgent().getPrenom() + " " + document.getReviewedByAgent().getNom(),
-                document.getReviewedAt()
-        );
     }
 }

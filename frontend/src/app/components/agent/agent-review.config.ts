@@ -21,6 +21,7 @@ export interface AgentReviewConfig {
 }
 
 const commonCompanyFields = ['denomination', 'legalForm', 'activity', 'entrepreneur', 'cin', 'region', 'capital', 'contact'];
+const aeCompanyFields = ['denomination', 'activity', 'entrepreneur', 'cin', 'region', 'contact'];
 
 export const AGENT_REVIEW_CONFIG: Record<string, AgentReviewConfig> = {
   OMPIC: {
@@ -118,6 +119,60 @@ export const AGENT_REVIEW_CONFIG: Record<string, AgentReviewConfig> = {
     ],
     companyFields: ['denomination', 'legalForm', 'entrepreneur', 'region'],
     documentTypes: ['CERTIFICAT_NEGATIF', 'STATUTS_SIGNES', 'FORMULAIRE_UNIQUE', 'ATTESTATION_PARUTION', 'AUTRE'],
+    capitalChecklist: false
+  },
+
+  // ── Configs spécifiques Auto-Entrepreneur ──────────────────────────────────
+
+  // CRI Étape 1 AE : Vérification d'éligibilité — mêmes clés backend que CRI standard
+  CRI_AE_ELIGIBILITE: {
+    title: "Centre Régional d'Investissement — Vérification d'éligibilité",
+    checklist: [
+      { key: 'companyFileComplete', label: "L'activité déclarée est éligible au statut Auto-Entrepreneur." },
+      { key: 'companyDetailsConsistent', label: "Les données d'identité de l'entrepreneur sont cohérentes avec la CIN." },
+      { key: 'documentsComplete', label: "Les pièces justificatives (CIN, justificatif de siège) sont présentes et lisibles." }
+    ],
+    resultTitle: 'Éligibilité confirmée — dossier transmis',
+    resultFields: [
+      { key: 'depositReceiptNumber', label: "Référence de confirmation d'éligibilité", type: 'text' as const, required: true }
+    ],
+    companyFields: aeCompanyFields,
+    documentTypes: ['CIN', 'JUSTIFICATIF_SIEGE', 'FORMULAIRE_UNIQUE', 'AUTRE'],
+    capitalChecklist: false
+  },
+
+  // CRI Étape 3 AE : Contrôle de conformité — mêmes clés backend que CRI standard
+  CRI_AE_CONFORMITE: {
+    title: "Centre Régional d'Investissement — Contrôle de conformité",
+    checklist: [
+      { key: 'companyFileComplete', label: "Le dossier est complet et conforme aux exigences RNAE." },
+      { key: 'companyDetailsConsistent', label: "L'identité du demandeur a été vérifiée en agence." },
+      { key: 'documentsComplete', label: "Tous les documents requis sont lisibles et conformes." }
+    ],
+    resultTitle: 'Dossier conforme — Transmis à la DGI',
+    resultFields: [
+      { key: 'depositReceiptNumber', label: 'Référence de conformité RNAE', type: 'text' as const, required: true }
+    ],
+    companyFields: aeCompanyFields,
+    documentTypes: ['CIN', 'JUSTIFICATIF_SIEGE', 'FORMULAIRE_UNIQUE', 'AUTRE'],
+    capitalChecklist: false
+  },
+
+  // DGI Étape 4 AE : Délivrance de la carte — mêmes clés backend que DGI standard
+  DGI_AE: {
+    title: "Direction Générale des Impôts — Attribution de l'identifiant fiscal",
+    checklist: [
+      { key: 'taxIdentityVerified', label: "Les informations fiscales de l'auto-entrepreneur sont vérifiées." },
+      { key: 'activityTaxChecked', label: "Le code d'activité RNAE est attribué et conforme." },
+      { key: 'supportingDocuments', label: "La carte auto-entrepreneur est prête à être délivrée." }
+    ],
+    resultTitle: 'Carte auto-entrepreneur délivrée',
+    resultFields: [
+      { key: 'taxIdentifier', label: 'Identifiant fiscal attribué', type: 'text' as const, required: true },
+      { key: 'professionalTaxCertificate', label: 'Numéro RNAE / Référence carte auto-entrepreneur', type: 'text' as const, required: true }
+    ],
+    companyFields: aeCompanyFields,
+    documentTypes: ['CIN', 'JUSTIFICATIF_SIEGE', 'FORMULAIRE_UNIQUE', 'AUTRE'],
     capitalChecklist: false
   }
 };

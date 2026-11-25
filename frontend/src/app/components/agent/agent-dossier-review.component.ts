@@ -67,6 +67,22 @@ export class AgentDossierReviewComponent implements OnChanges, OnDestroy {
   }
 
   get config(): AgentReviewConfig | null {
+    const legalForm = this.dossier?.formeJuridique || this.dossier?.legalFormCode;
+    const stepCode = this.currentStep?.code;
+
+    // Configs spécifiques Auto-Entrepreneur selon l'étape active
+    if (this.organizationCode === 'CRI' && legalForm === 'AUTO_ENTREPRENEUR') {
+      if (stepCode === 'VERIFICATION_ELIGIBILITE') {
+        return AGENT_REVIEW_CONFIG['CRI_AE_ELIGIBILITE'] ?? AGENT_REVIEW_CONFIG['CRI'] ?? null;
+      }
+      if (stepCode === 'VALIDATION_POSTE_MAROC') {
+        return AGENT_REVIEW_CONFIG['CRI_AE_CONFORMITE'] ?? AGENT_REVIEW_CONFIG['CRI'] ?? null;
+      }
+    }
+    if (this.organizationCode === 'DGI' && legalForm === 'AUTO_ENTREPRENEUR') {
+      return AGENT_REVIEW_CONFIG['DGI_AE'] ?? AGENT_REVIEW_CONFIG['DGI'] ?? null;
+    }
+
     return AGENT_REVIEW_CONFIG[this.organizationCode] ?? null;
   }
 

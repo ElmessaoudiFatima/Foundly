@@ -33,6 +33,10 @@ public interface AgentService {
 
     void assertDocumentAccess(UUID dossierId, UUID documentId, Utilisateur agent);
 
+    List<com.backend.dto.document.DocumentResponseDto> getDossierDocuments(UUID dossierId, Utilisateur agent);
+
+    List<com.backend.dto.document.DocumentResponseDto> getHistoricalDocuments(UUID dossierId, Utilisateur agent);
+
     boolean isDocumentTypeAllowedForAgent(String documentTypeCode, Utilisateur agent);
 
     void assertHistoricalDossierAccess(UUID dossierId, Utilisateur agent);

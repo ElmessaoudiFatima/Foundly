@@ -9,15 +9,21 @@ import com.backend.dto.agent.AgentRejectRequest;
 import com.backend.dto.agent.AgentValidateRequest;
 import com.backend.dto.audit.AuditEventDto;
 import com.backend.dto.audit.PagedAuditEventDto;
-import com.backend.entity.Dossier;
+import com.backend.dto.document.DocumentResponseDto;
+import com.backend.entity.Associe;
 import com.backend.entity.AuditEvent;
 import com.backend.entity.DocumentEntity;
+import com.backend.entity.Dossier;
+import com.backend.entity.Gerant;
 import com.backend.entity.SuiviEtape;
 import com.backend.entity.Utilisateur;
 import com.backend.enums.ActorType;
 import com.backend.enums.AuditEventAction;
 import com.backend.enums.DossierStatus;
 import com.backend.enums.DocumentReviewStatus;
+import com.backend.enums.DocumentType;
+import com.backend.enums.LegalFormCode;
+import com.backend.enums.ModeNominationGerant;
 import com.backend.enums.StepStatus;
 import com.backend.exception.AgentClaimConflictException;
 import com.backend.exception.DossierNotFoundException;
@@ -42,6 +48,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -179,8 +186,59 @@ public class AgentServiceImpl implements AgentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<DocumentResponseDto> getDossierDocuments(UUID dossierId, Utilisateur agent) {
+        assertDossierAccess(dossierId, agent);
+        return documentRepository.findByDossierIdOrderByUploadedAtDesc(dossierId).stream()
+                .filter(d -> isDocumentTypeAllowedForAgent(d.getDocumentTypeCode(), agent))
+                .map(this::toDocumentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentResponseDto> getHistoricalDocuments(UUID dossierId, Utilisateur agent) {
+        assertHistoricalDossierAccess(dossierId, agent);
+        return documentRepository.findByDossierIdOrderByUploadedAtDesc(dossierId).stream()
+                .filter(d -> isDocumentTypeAllowedForAgent(d.getDocumentTypeCode(), agent))
+                .map(this::toDocumentResponse)
+                .toList();
+    }
+
+    private DocumentResponseDto toDocumentResponse(DocumentEntity document) {
+        String typeLabel = Arrays.stream(DocumentType.values())
+                .filter(type -> type.name().equals(document.getDocumentTypeCode()))
+                .map(DocumentType::getLabel)
+                .findFirst()
+                .orElse(document.getDocumentTypeCode());
+        String contentUrl = "/dossiers/" + document.getDossier().getId()
+                + "/documents/" + document.getId() + "/content";
+        return new DocumentResponseDto(
+                document.getId(),
+                document.getDocumentTypeCode(),
+                typeLabel,
+                document.getOriginalFileName(),
+                document.getMimeType(),
+                document.getFileSize(),
+                document.getSource(),
+                document.getUploadedAt(),
+                document.getUploadedBy() != null ? document.getUploadedBy().getId() : null,
+                document.getNote(),
+                contentUrl,
+                document.getReviewStatus(),
+                document.getReviewComment(),
+                document.getReviewedByAgent() == null ? null
+                        : (document.getReviewedByAgent().getPrenom() + " " + document.getReviewedByAgent().getNom()).trim(),
+                document.getReviewedAt(),
+                document.getAssocie() != null ? document.getAssocie().getId() : null,
+                document.getGerant() != null ? document.getGerant().getId() : null
+        );
+    }
+
+    @Override
     public boolean isDocumentTypeAllowedForAgent(String documentTypeCode, Utilisateur agent) {
-        return applicableDocumentTypes(resolveOrganismeCode(agent)).contains(documentTypeCode);
+        // Pour la vérification d'accès upload, on utilise le set large (sans restriction AE) — null = forme inconnue
+        return applicableDocumentTypes(resolveOrganismeCode(agent), null).contains(documentTypeCode);
     }
 
     @Override
@@ -192,10 +250,16 @@ public class AgentServiceImpl implements AgentService {
                 .findByDossierIdAndActorIdAndActionInOrderByOccurredAtDesc(
                         dossierId, agent.getId(), List.of(AuditEventAction.ETAPE_VALIDEE, AuditEventAction.ETAPE_REJETEE))
                 .stream().anyMatch(event -> event.getStepTrackingId() != null);
+        String agentOrganisme = resolveOrganismeCode(agent);
         boolean hasDecisionStep = suiviEtapeRepository.findByDossierIdOrderByOrdreAsc(dossierId).stream()
-                .anyMatch(step -> step.getAgent() != null
-                        && step.getAgent().getId().equals(agent.getId())
-                        && (step.getStatut() == StepStatus.VALIDEE || step.getStatut() == StepStatus.REJETEE));
+                .anyMatch(step -> (step.getStatut() == StepStatus.VALIDEE || step.getStatut() == StepStatus.REJETEE)
+                        && step.getActionOwner() == ActorType.AGENT
+                        && (
+                            // Vérifie par agent assigné directement
+                            (step.getAgent() != null && step.getAgent().getId().equals(agent.getId()))
+                            // OU par organisme (pour les étapes seedées sans agent assigné)
+                            || (step.getOrganismeCode() != null && step.getOrganismeCode().equalsIgnoreCase(agentOrganisme))
+                        ));
         if (!hasDecisionAudit && !hasDecisionStep) {
             throw new UnauthorizedDossierAccessException(
                     "Accès refusé : aucun historique de décision de cet agent pour ce dossier.");
@@ -348,17 +412,51 @@ public class AgentServiceImpl implements AgentService {
             throw new InvalidDossierStateException("Les trois contrôles de l'attestation de blocage doivent être confirmés.");
         }
         List<DocumentEntity> documents = documentRepository.findByDossierIdOrderByUploadedAtDesc(dossierId);
-        Set<String> applicableTypes = applicableDocumentTypes(currentStep.getOrganismeCode());
+        Set<String> applicableTypes = applicableDocumentTypes(currentStep.getOrganismeCode(), dossier.getFormeJuridique());
         List<DocumentEntity> applicableDocuments = documents.stream()
                 .filter(document -> applicableTypes.contains(document.getDocumentTypeCode()))
                 .toList();
-        Set<String> requiredTypes = requiredDocumentTypes(currentStep.getOrganismeCode(), dossier.isCapitalBlockageRequired());
+        Set<String> requiredTypes = requiredDocumentTypes(currentStep.getOrganismeCode(), dossier.isCapitalBlockageRequired(), dossier.getFormeJuridique());
         Set<String> uploadedTypes = new HashSet<>();
         applicableDocuments.forEach(document -> uploadedTypes.add(document.getDocumentTypeCode()));
         if (applicableDocuments.isEmpty()
                 || !uploadedTypes.containsAll(requiredTypes)
                 || applicableDocuments.stream().anyMatch(document -> document.getReviewStatus() != DocumentReviewStatus.CONFORME)) {
             throw new InvalidDossierStateException("Toutes les pièces doivent être contrôlées et conformes avant validation.");
+        }
+
+        // Vérifications spécifiques SARL au guichet CRI
+        if ("CRI".equalsIgnoreCase(currentStep.getOrganismeCode()) && dossier.getFormeJuridique() == LegalFormCode.SARL) {
+            if (dossier.getGerants() != null && dossier.getGerants().stream().filter(Gerant::isActif)
+                    .anyMatch(g -> g.getModeNomination() == ModeNominationGerant.ACTE_SEPARE)) {
+                if (!uploadedTypes.contains("PV_NOMINATION_GERANT")) {
+                    throw new InvalidDossierStateException("Le procès-verbal de nomination de la gérance est obligatoire pour valider cette étape.");
+                }
+            }
+            if (dossier.getAssocies() != null) {
+                for (Associe associe : dossier.getAssocies().stream().filter(Associe::isActif).toList()) {
+                    boolean hasConformeCin = applicableDocuments.stream().anyMatch(doc ->
+                            "CIN".equalsIgnoreCase(doc.getDocumentTypeCode())
+                                    && doc.getAssocie() != null
+                                    && doc.getAssocie().getId().equals(associe.getId())
+                                    && doc.getReviewStatus() == DocumentReviewStatus.CONFORME);
+                    if (!hasConformeCin) {
+                        throw new InvalidDossierStateException("La pièce d'identité de l'associé " + associe.getPrenom() + " " + associe.getNom() + " doit être contrôlée et conforme avant validation.");
+                    }
+                }
+            }
+            if (dossier.getGerants() != null) {
+                for (Gerant gerant : dossier.getGerants().stream().filter(Gerant::isActif).filter(g -> !g.isEstAssocie()).toList()) {
+                    boolean hasConformeCin = applicableDocuments.stream().anyMatch(doc ->
+                            "CIN".equalsIgnoreCase(doc.getDocumentTypeCode())
+                                    && doc.getGerant() != null
+                                    && doc.getGerant().getId().equals(gerant.getId())
+                                    && doc.getReviewStatus() == DocumentReviewStatus.CONFORME);
+                    if (!hasConformeCin) {
+                        throw new InvalidDossierStateException("La pièce d'identité du gérant tiers " + gerant.getPrenom() + " " + gerant.getNom() + " doit être contrôlée et conforme avant validation.");
+                    }
+                }
+            }
         }
         currentStep.setChecklistReviewJson(writeJson(request.checklist()));
         Map<String, String> stepResult = new HashMap<>(request.stepResult());
@@ -403,11 +501,14 @@ public class AgentServiceImpl implements AgentService {
         };
     }
 
-    private Set<String> applicableDocumentTypes(String organization) {
+    private Set<String> applicableDocumentTypes(String organization, LegalFormCode forme) {
         return switch (normalizeOrganismeCode(organization)) {
             case "OMPIC" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "AUTRE");
-            case "CRI" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES",
-                    "ATTESTATION_BLOCAGE_CAPITAL", "FORMULAIRE_UNIQUE", "PV_NOMINATION_GERANT", "AUTRE");
+            case "CRI" -> forme == LegalFormCode.AUTO_ENTREPRENEUR
+                    ? Set.of("CIN", "JUSTIFICATIF_SIEGE", "FORMULAIRE_UNIQUE", "AUTRE")
+                    // null (upload check) ou autre forme : set large
+                    : Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES",
+                            "ATTESTATION_BLOCAGE_CAPITAL", "FORMULAIRE_UNIQUE", "PV_NOMINATION_GERANT", "AUTRE");
             case "TRIBUNAL" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES",
                     "FORMULAIRE_UNIQUE", "PV_NOMINATION_GERANT", "AUTRE");
             case "DGI" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "FORMULAIRE_UNIQUE", "AUTRE");
@@ -418,12 +519,18 @@ public class AgentServiceImpl implements AgentService {
         };
     }
 
-    private Set<String> requiredDocumentTypes(String organization, boolean capitalBlockageRequired) {
+    private Set<String> requiredDocumentTypes(String organization, boolean capitalBlockageRequired, LegalFormCode forme) {
         return switch (normalizeOrganismeCode(organization)) {
             case "OMPIC" -> Set.of("CIN");
-            case "CRI" -> capitalBlockageRequired
-                    ? Set.of("CIN", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE", "ATTESTATION_BLOCAGE_CAPITAL")
-                    : Set.of("CIN", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE");
+            case "CRI" -> {
+                if (forme == LegalFormCode.AUTO_ENTREPRENEUR) {
+                    // RG-AE-03 : Pour l'Auto-Entrepreneur, les pièces requises sont la CIN, le justificatif de siège/domicile et le formulaire RNAE (pas de statuts)
+                    yield Set.of("CIN", "JUSTIFICATIF_SIEGE", "FORMULAIRE_UNIQUE");
+                }
+                yield capitalBlockageRequired
+                        ? Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE", "ATTESTATION_BLOCAGE_CAPITAL")
+                        : Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE");
+            }
             case "TRIBUNAL" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE");
             case "DGI" -> Set.of("CIN", "JUSTIFICATIF_SIEGE", "FORMULAIRE_UNIQUE");
             case "CNSS" -> Set.of("CIN", "STATUTS_SIGNES", "FORMULAIRE_UNIQUE");

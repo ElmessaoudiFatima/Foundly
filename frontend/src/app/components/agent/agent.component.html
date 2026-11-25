@@ -146,7 +146,7 @@
       <!-- Header page -->
       <div class="page-header">
         <div class="page-header-left">
-          <div class="page-date">{{ today | date:'EEEE dd MMMM yyyy' : '' : 'fr-FR' | titlecase }}</div>
+          <div class="page-date">{{ today | date:'EEEE dd MMMM yyyy' | titlecase }}</div>
           <h1 class="page-title">Espace {{ currentOrganisme() }}</h1>
           <p class="page-subtitle">Voici l'activité de votre file de traitement {{ currentOrganisme() }}.</p>
         </div>
@@ -451,8 +451,9 @@
               <td>{{ getFormeLabel(item.formeJuridique) }}</td>
               <td>{{ item.region || '—' }}</td>
               <td>
-                <div class="cell-main">{{ item.entrepreneurNom || '—' }}</div>
-                <div class="cell-sub">{{ item.entrepreneurEmail || 'Entrepreneur enregistré' }}</div>
+                <div class="cell-main">{{ item.entrepreneurNom || item.nomEntreprise || '—' }}</div>
+                <div class="cell-sub" *ngIf="item.entrepreneurEmail">{{ item.entrepreneurEmail }}</div>
+                <div class="cell-sub text-muted" *ngIf="!item.entrepreneurEmail">Email non communiqué</div>
               </td>
               <td>
                 <div>{{ item.etapeStartedAt | date:'dd MMM yyyy' }}</div>
