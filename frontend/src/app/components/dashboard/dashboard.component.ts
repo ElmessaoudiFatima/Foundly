@@ -7,9 +7,18 @@ import { DocumentService } from '../../services/document.service';
 import { PaymentService } from '../../services/payment.service';
 import { NotificationService } from '../../services/notification.service';
 import {
-  AuditEvent, ChecklistItem, DossierDetail, DossierPayload, DossierStatus, DossierSummary,
-  LegalFormCode, NotificationItem, Payment, PaymentConfirmation, StepTracking
+  Associe, AuditEvent, ChecklistItem, DossierDetail, DossierPayload, DossierStatus, DossierSummary,
+  Gerant, LegalFormCode, ModeNominationGerant, NotificationItem, Payment, PaymentConfirmation, StepTracking
 } from '../../models/entrepreneur.models';
+import { AssociesManagerComponent } from './associes-manager.component';
+import { GerantsManagerComponent } from './gerants-manager.component';
+import {
+  isCapitalDivisibleByNominal,
+  computeTotalParts,
+  computeApport,
+  computePourcentageDetention,
+  summarizeCapitalDistribution
+} from '../../utils/capital-math.utils';
 
 type DashboardView = 'list' | 'detail';
 type WizardMode = 'create' | 'edit';
@@ -17,7 +26,7 @@ type WizardMode = 'create' | 'edit';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssociesManagerComponent, GerantsManagerComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -188,6 +197,45 @@ export class DashboardComponent implements OnInit {
     return 'Le blocage du capital est requis uniquement si le capital dépasse 100 000 DH.';
   }
 
+  get maxWizardSteps(): number {
+    return this.isAutoEntrepreneur ? 3 : 5;
+  }
+
+  get activeAssocies(): Associe[] {
+    return (this.dossierForm.associes || []).filter(a => a.actif !== false);
+  }
+
+  get activeGerants(): Gerant[] {
+    return (this.dossierForm.gerants || []).filter(g => g.actif !== false);
+  }
+
+  get totalPartsAttendu(): number {
+    return computeTotalParts(
+      this.dossierForm.capitalAmountMad,
+      this.dossierForm.valeurNominalePart || 100
+    );
+  }
+
+  getAssociePct(a: Associe): string {
+    return computePourcentageDetention(a.nombreParts, this.totalPartsAttendu);
+  }
+
+  get totalPartsAttribuees(): number {
+    return this.activeAssocies.reduce((sum, a) => sum + (Number(a.nombreParts) || 0), 0);
+  }
+
+  get totalApportsAttribues(): number {
+    return this.activeAssocies.reduce((sum, a) => sum + (Number(a.montantApport) || 0), 0);
+  }
+
+  get selectedDossierActiveAssocies(): Associe[] {
+    return (this.selectedDossier?.associes || []).filter(a => a.actif !== false);
+  }
+
+  get selectedDossierActiveGerants(): Gerant[] {
+    return (this.selectedDossier?.gerants || []).filter(g => g.actif !== false);
+  }
+
   loadDossiers(): void {
     this.isLoadingDossiers = true;
     this.dossierService.getMyDossiers(this.dossierStatusFilter, this.dossierPage, this.dossierPageSize).subscribe({
@@ -286,7 +334,10 @@ export class DashboardComponent implements OnInit {
       region: dossier.region ?? '',
       activityDescription: dossier.activityDescription ?? '',
       capitalAmountMad: dossier.capitalAmountMad ?? 0,
-      headOfficeAddress: dossier.headOfficeAddress ?? ''
+      headOfficeAddress: dossier.headOfficeAddress ?? '',
+      valeurNominalePart: dossier.valeurNominalePart ?? 100,
+      associes: dossier.associes ? JSON.parse(JSON.stringify(dossier.associes)) : [],
+      gerants: dossier.gerants ? JSON.parse(JSON.stringify(dossier.gerants)) : []
     };
     // Démarrer sur les informations préremplies ; la forme reste accessible
     // avec « Retour » pour un dossier encore à l'état Brouillon.
@@ -301,50 +352,173 @@ export class DashboardComponent implements OnInit {
 
   nextWizardStep(): void {
     this.formError = '';
-    if (this.wizardStep === 1 && !this.dossierForm.legalFormCode) {
-      this.formError = 'Sélectionnez une forme juridique pour continuer.';
+    // Étape 1 : Choix de la forme juridique
+    if (this.wizardStep === 1) {
+      if (!this.dossierForm.legalFormCode) {
+        this.formError = 'Sélectionnez une forme juridique pour continuer.';
+        return;
+      }
+      this.wizardStep = 2;
       return;
     }
+
+    // Étape 2 : Dénomination, région, capital
     if (this.wizardStep === 2) {
-      if (!this.dossierForm.proposedCompanyName.trim()) {
+      if (!this.dossierForm.proposedCompanyName?.trim()) {
         this.formError = 'Indiquez le nom envisagé pour votre entreprise.';
         return;
       }
-      if (!this.dossierForm.region.trim()) {
+      if (!this.dossierForm.region?.trim()) {
         this.formError = 'La région d’implantation est obligatoire.';
         return;
       }
-      if (this.dossierForm.capitalAmountMad === null || this.dossierForm.capitalAmountMad < 0) {
-        this.formError = 'Le capital doit être égal ou supérieur à zéro.';
+      if (!this.isAutoEntrepreneur) {
+        const capital = this.dossierForm.capitalAmountMad;
+        if (capital === undefined || capital === null || Number(capital) <= 0) {
+          this.formError = 'Le capital social doit être strictement supérieur à zéro pour une société.';
+          return;
+        }
+        const vn = this.dossierForm.valeurNominalePart || 100;
+        if (!vn || Number(vn) <= 0) {
+          this.formError = 'La valeur nominale d’une part doit être strictement supérieure à zéro (100 MAD par défaut).';
+          return;
+        }
+        // Correction D1 : validation mathématique exacte sans dérive flottante
+        if (!isCapitalDivisibleByNominal(capital, vn)) {
+          this.formError = `Le capital (${capital} MAD) doit être un multiple exact de la valeur nominale (${vn} MAD).`;
+          return;
+        }
+      }
+      this.wizardStep = 3;
+      return;
+    }
+
+    // Pour l'auto-entrepreneur, l'étape 3 est la dernière étape (vérification)
+    if (this.isAutoEntrepreneur) {
+      return;
+    }
+
+    // Étape 3 : Associés & Répartition du capital (SARL et SARL-AU)
+    if (this.wizardStep === 3) {
+      const activeAssocies = this.activeAssocies;
+      const summary = summarizeCapitalDistribution(
+        this.dossierForm.legalFormCode,
+        this.dossierForm.capitalAmountMad,
+        this.dossierForm.valeurNominalePart || 100,
+        activeAssocies
+      );
+
+      if (summary.errors.length > 0) {
+        this.formError = summary.errors[0];
         return;
       }
+
+      for (const a of activeAssocies) {
+        if (!a.nom?.trim() || !a.prenom?.trim()) {
+          this.formError = 'Le nom et le prénom de chaque associé sont obligatoires.';
+          return;
+        }
+        if (!a.cinOuPasseport?.trim()) {
+          this.formError = 'Le CIN ou passeport de chaque associé est obligatoire.';
+          return;
+        }
+      }
+
+      if (!summary.isComplete) {
+        if (summary.partsRestantes > 0) {
+          this.formError = `La somme des parts réparties (${summary.sumPartsAttribuees}) doit être exactement égale au nombre total de parts (${summary.totalPartsAttendu}). Il reste ${summary.partsRestantes} part(s) à attribuer.`;
+          return;
+        }
+        if (summary.capitalRestant !== 0) {
+          this.formError = `La somme des apports (${summary.sumApportsAttribues} MAD) doit être égale au capital social (${summary.capitalTotal} MAD).`;
+          return;
+        }
+      }
+
+      this.wizardStep = 4;
+      return;
     }
-    this.wizardStep = Math.min(3, this.wizardStep + 1);
+
+    // Étape 4 : Gérance (SARL et SARL-AU)
+    if (this.wizardStep === 4) {
+      const activeGerants = this.activeGerants;
+      if (activeGerants.length === 0) {
+        this.formError = 'Désignez au moins un gérant actif pour diriger la société.';
+        return;
+      }
+
+      for (const g of activeGerants) {
+        if (!g.nom?.trim() || !g.prenom?.trim()) {
+          this.formError = 'Le nom et le prénom de chaque gérant sont obligatoires.';
+          return;
+        }
+        if (!g.cinOuPasseport?.trim()) {
+          this.formError = 'Le CIN ou passeport de chaque gérant est obligatoire.';
+          return;
+        }
+        if (g.estAssocie) {
+          const associeExists = this.activeAssocies.some(a => 
+            (g.associeId && a.id && g.associeId === a.id) ||
+            (g.cinOuPasseport && a.cinOuPasseport && g.cinOuPasseport.trim().toUpperCase() === a.cinOuPasseport.trim().toUpperCase())
+          );
+          if (!associeExists) {
+            this.formError = `Le gérant associé ${g.prenom} ${g.nom} doit correspondre à un associé actif du dossier.`;
+            return;
+          }
+        }
+      }
+
+      this.wizardStep = 5;
+      return;
+    }
   }
 
-  previousWizardStep(): void { this.formError = ''; this.wizardStep = Math.max(1, this.wizardStep - 1); }
+  previousWizardStep(): void {
+    this.formError = '';
+    this.wizardStep = Math.max(1, this.wizardStep - 1);
+  }
 
   saveDossier(): void {
-    if (!this.dossierForm.region.trim() || !this.dossierForm.proposedCompanyName.trim()) {
+    if (!this.dossierForm.region?.trim() || !this.dossierForm.proposedCompanyName?.trim()) {
       this.formError = 'Veuillez compléter les informations obligatoires.';
       this.wizardStep = 2;
       return;
     }
+
+    const isAe = this.dossierForm.legalFormCode === 'AUTO_ENTREPRENEUR';
     this.isSavingDossier = true;
     this.formError = '';
+
+    const vn = Number(this.dossierForm.valeurNominalePart) || 100;
+    const totalParts = computeTotalParts(this.dossierForm.capitalAmountMad, vn);
+
+    const normalizedAssocies = isAe ? undefined : (this.dossierForm.associes || []).map(a => {
+      if (a.actif === false) return a;
+      const parts = Number(a.nombreParts) || 1;
+      return {
+        ...a,
+        nombreParts: parts,
+        montantApport: computeApport(parts, vn),
+        pourcentageDetention: totalParts > 0 ? Number(computePourcentageDetention(parts, totalParts)) : 0
+      };
+    });
+
     const payload: DossierPayload = {
       ...this.dossierForm,
       proposedCompanyName: this.dossierForm.proposedCompanyName.trim(),
       region: this.dossierForm.region.trim(),
-      activityDescription: this.dossierForm.activityDescription.trim(),
-      headOfficeAddress: this.dossierForm.headOfficeAddress.trim(),
-      capitalAmountMad: this.dossierForm.legalFormCode === 'AUTO_ENTREPRENEUR'
-        ? 0
-        : Number(this.dossierForm.capitalAmountMad) || 0
+      activityDescription: this.dossierForm.activityDescription ? this.dossierForm.activityDescription.trim() : '',
+      headOfficeAddress: this.dossierForm.headOfficeAddress ? this.dossierForm.headOfficeAddress.trim() : '',
+      capitalAmountMad: isAe ? 0 : Number(this.dossierForm.capitalAmountMad) || 0,
+      valeurNominalePart: isAe ? undefined : vn,
+      associes: normalizedAssocies,
+      gerants: isAe ? undefined : (this.dossierForm.gerants || [])
     };
+
     const request = this.wizardMode === 'create'
       ? this.dossierService.createDossier(payload)
       : this.dossierService.updateDossier(this.editingDossierId!, payload);
+
     request.subscribe({
       next: (dossier) => {
         this.isSavingDossier = false;
@@ -353,11 +527,36 @@ export class DashboardComponent implements OnInit {
         this.loadDossiers();
         this.openDossier(dossier.id);
       },
-      error: (error) => { this.isSavingDossier = false; this.formError = this.errorMessage(error, 'Le dossier n’a pas pu être enregistré.'); }
+      error: (error) => {
+        this.isSavingDossier = false;
+        this.formError = this.errorMessage(error, 'Le dossier n’a pas pu être enregistré.');
+      }
     });
   }
 
-  chooseLegalForm(code: LegalFormCode): void { if (this.canChangeLegalForm) this.dossierForm.legalFormCode = code; }
+  chooseLegalForm(code: LegalFormCode): void {
+    if (!this.canChangeLegalForm) return;
+    this.dossierForm.legalFormCode = code;
+    if (code === 'AUTO_ENTREPRENEUR') {
+      this.dossierForm.capitalAmountMad = 0;
+      this.dossierForm.valeurNominalePart = undefined;
+      this.dossierForm.associes = [];
+      this.dossierForm.gerants = [];
+    } else {
+      if (!this.dossierForm.capitalAmountMad || this.dossierForm.capitalAmountMad <= 0) {
+        this.dossierForm.capitalAmountMad = code === 'SA' ? 300000 : 100000;
+      }
+      if (!this.dossierForm.valeurNominalePart || this.dossierForm.valeurNominalePart <= 0) {
+        this.dossierForm.valeurNominalePart = 100;
+      }
+      if (!this.dossierForm.associes) {
+        this.dossierForm.associes = [];
+      }
+      if (!this.dossierForm.gerants) {
+        this.dossierForm.gerants = [];
+      }
+    }
+  }
 
   onFileSelected(item: ChecklistItem, event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -587,7 +786,17 @@ export class DashboardComponent implements OnInit {
   formatDate(value: string | null | undefined): string { return value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'; }
 
   private emptyDossierForm(): DossierPayload {
-    return { legalFormCode: 'SARL_AU', proposedCompanyName: '', region: '', activityDescription: '', capitalAmountMad: 0, headOfficeAddress: '' };
+    return {
+      legalFormCode: 'SARL_AU',
+      proposedCompanyName: '',
+      region: '',
+      activityDescription: '',
+      capitalAmountMad: 100000,
+      headOfficeAddress: '',
+      valeurNominalePart: 100,
+      associes: [],
+      gerants: []
+    };
   }
 
   private isDocumentSubmitted(documentTypeCode: string): boolean {

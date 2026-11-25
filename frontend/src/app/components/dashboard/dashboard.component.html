@@ -101,6 +101,124 @@
           </section>
           <aside class="side-stack"><section class="content-card"><span class="section-kicker">Informations</span><h2>Votre entreprise</h2><dl class="company-details"><div><dt>Forme juridique</dt><dd>{{ legalFormLabel(selectedDossier.legalFormCode) }}</dd></div><div><dt>Capital social</dt><dd>{{ formatMoney(selectedDossier.capitalAmountMad) }}</dd></div><div><dt>Siège social</dt><dd>{{ selectedDossier.headOfficeAddress || 'À renseigner' }}</dd></div><div><dt>Activité</dt><dd>{{ selectedDossier.activityDescription || 'À renseigner' }}</dd></div></dl>@if (selectedDossier.capitalBlockageRequired) { <p class="capital-note">Le blocage du capital est requis pour ce dossier.</p> }</section><section class="content-card"><span class="section-kicker">Règlements</span><h2>Paiements simulés</h2>@if (!payments.length) { <p class="empty-inline">Aucun paiement à afficher.</p> } @else { <div class="payment-list">@for (payment of payments; track payment.id) { <article><div><strong>{{ formatMoney(payment.amountMad) }}</strong><small>{{ payment.stepLabel }}</small><small>{{ payment.status === 'CONFIRME' ? 'Confirmé' : 'En attente' }}</small></div>@if (payment.status === 'CONFIRME') { <button type="button" (click)="downloadReceipt(payment)">Reçu PDF</button> }</article> }</div> }</section></aside>
         </div>
+
+        @if (isCompanyDossier) {
+          <section class="content-card governance-card">
+            <div class="card-heading">
+              <div>
+                <span class="section-kicker">Gouvernance & Capital</span>
+                <h2>Associés et Gérance</h2>
+                <p>{{ selectedDossierActiveAssocies.length }} associé(s) fondateurs · {{ selectedDossierActiveGerants.length }} gérant(s)</p>
+              </div>
+              @if (editableDossier) {
+                <button type="button" class="btn btn-outline btn-sm" (click)="openEditWizard()">
+                  Modifier les associés & gérants
+                </button>
+              }
+            </div>
+
+            <div class="governance-capital-strip">
+              <div class="cap-strip-item">
+                <span>Capital social</span>
+                <strong>{{ formatMoney(selectedDossier.capitalAmountMad) }}</strong>
+              </div>
+              <div class="cap-strip-item">
+                <span>Valeur nominale</span>
+                <strong>{{ formatMoney(selectedDossier.valeurNominalePart || 100) }} / part</strong>
+              </div>
+              <div class="cap-strip-item">
+                <span>Total parts</span>
+                <strong>{{ selectedDossier.nombreTotalParts || (selectedDossier.valeurNominalePart ? ((selectedDossier.capitalAmountMad || 0) / selectedDossier.valeurNominalePart) : '-') }}</strong>
+              </div>
+              <div class="cap-strip-item">
+                <span>Répartition</span>
+                <strong class="text-success">100% attribué</strong>
+              </div>
+            </div>
+
+            <div class="governance-columns">
+              <div class="governance-block">
+                <h3>Associés fondateurs</h3>
+                @if (selectedDossierActiveAssocies.length === 0) {
+                  <p class="empty-inline">Aucun associé renseigné dans ce dossier.</p>
+                } @else {
+                  <div class="table-responsive">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Associé</th>
+                          <th>CIN / Passeport</th>
+                          <th>Nationalité</th>
+                          <th>Parts</th>
+                          <th>Apport</th>
+                          <th>Détention</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (a of selectedDossierActiveAssocies; track a.cinOuPasseport || $index) {
+                          <tr>
+                            <td>
+                              <strong>{{ a.prenom }} {{ a.nom }}</strong>
+                              <small class="text-muted d-block">{{ a.adresse }}</small>
+                            </td>
+                            <td><code>{{ a.cinOuPasseport }}</code></td>
+                            <td>{{ a.nationalite }}</td>
+                            <td><strong>{{ a.nombreParts }}</strong></td>
+                            <td>{{ formatMoney(a.montantApport) }}</td>
+                            <td><span class="pct-badge">{{ a.pourcentageDetention }}%</span></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+
+              <div class="governance-block">
+                <h3>Gérance de la société</h3>
+                @if (selectedDossierActiveGerants.length === 0) {
+                  <p class="empty-inline">Aucun gérant désigné dans ce dossier.</p>
+                } @else {
+                  <div class="table-responsive">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Gérant</th>
+                          <th>Qualité</th>
+                          <th>CIN / Passeport</th>
+                          <th>Nomination</th>
+                          <th>Mandat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (g of selectedDossierActiveGerants; track g.cinOuPasseport || $index) {
+                          <tr>
+                            <td>
+                              <strong>{{ g.prenom }} {{ g.nom }}</strong>
+                              <small class="text-muted d-block">{{ g.adresse }}</small>
+                            </td>
+                            <td>
+                              <span class="badge-role" [class.associe]="g.estAssocie" [class.tiers]="!g.estAssocie">
+                                {{ g.estAssocie ? 'Gérant associé' : 'Gérant tiers' }}
+                              </span>
+                            </td>
+                            <td><code>{{ g.cinOuPasseport }}</code></td>
+                            <td>
+                              <span class="nomination-badge" [class.statutaire]="g.modeNomination === 'STATUTAIRE'">
+                                {{ g.modeNomination === 'STATUTAIRE' ? 'Dans les statuts' : 'Acte séparé' }}
+                              </span>
+                            </td>
+                            <td>{{ g.dureeMandat || 'Indéterminée' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+        }
         <section class="content-card history-card"><div class="card-heading"><div><span class="section-kicker">Traçabilité</span><h2>Historique du dossier</h2></div></div>@if (isLoadingAudit) { <p class="empty-inline">Chargement de l’historique…</p> } @else if (!auditEvents.length) { <p class="empty-inline">Les actions importantes sur votre dossier apparaîtront ici.</p> } @else { <div class="audit-list">@for (event of auditEvents; track event.id) { <article><span class="audit-dot"></span><div><strong>{{ event.details || event.action }}</strong><p>{{ event.actorNom }} · {{ formatDate(event.occurredAt) }}</p>@if (event.reason) { <small>{{ event.reason }}</small> }</div></article> }</div> }</section>
       }
     }
@@ -110,18 +228,81 @@
     <div class="modal-backdrop" (click)="closeWizard()">
       <section class="modal wizard-modal" (click)="$event.stopPropagation()">
         <header class="modal-header"><div><span class="section-kicker">{{ wizardMode === 'create' ? 'Création guidée' : 'Mise à jour' }}</span><h2>{{ draftLabel }}</h2></div><button type="button" class="modal-close" aria-label="Fermer" (click)="closeWizard()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></header>
-        <div class="wizard-progress"><span [class.active]="wizardStep >= 1">1. Forme</span><i></i><span [class.active]="wizardStep >= 2">2. Informations</span><i></i><span [class.active]="wizardStep >= 3">3. Vérification</span></div>
+        <div class="wizard-progress">
+          @if (isAutoEntrepreneur) {
+            <span [class.active]="wizardStep >= 1">1. Forme</span><i></i>
+            <span [class.active]="wizardStep >= 2">2. Informations</span><i></i>
+            <span [class.active]="wizardStep >= 3">3. Vérification</span>
+          } @else {
+            <span [class.active]="wizardStep >= 1">1. Forme</span><i></i>
+            <span [class.active]="wizardStep >= 2">2. Société & Capital</span><i></i>
+            <span [class.active]="wizardStep >= 3">3. Associés</span><i></i>
+            <span [class.active]="wizardStep >= 4">4. Gérance</span><i></i>
+            <span [class.active]="wizardStep >= 5">5. Vérification</span>
+          }
+        </div>
         <div class="modal-body">
           @if (wizardStep === 1) {
             <div><h3>Choisissez une forme juridique</h3><p class="modal-intro">Le parcours, les pièces demandées et les règles applicables s’adapteront automatiquement à ce choix.</p><div class="legal-forms-grid">@for (form of legalForms; track form.code) { <button type="button" class="legal-form-choice" [class.selected]="dossierForm.legalFormCode === form.code" [disabled]="!canChangeLegalForm" (click)="chooseLegalForm(form.code)"><span class="legal-form-icon">@if (form.code === 'AUTO_ENTREPRENEUR') { <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5.5 19c.75-3.25 3-5 6.5-5s5.75 1.75 6.5 5M16.5 5.5h2.25v2.25M18.75 5.5 15.5 8.75"/></svg> } @else if (form.code === 'SA') { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9h12v11M4 9h16L12 4 4 9M9 12v5m3-5v5m3-5v5"/></svg> } @else { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V7h12v13M8 10h2m4 0h2M8 14h2m4 0h2M10 20v-3h4v3"/></svg> }</span><strong>{{ form.title }}</strong><small>{{ form.summary }}</small></button> }</div><div class="workflow-preview"><div class="workflow-preview-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="7" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="17" cy="17.5" r="1" fill="currentColor"/></svg><div><strong>{{ selectedWorkflowPreview.title }}</strong><small>{{ selectedWorkflowPreview.rule }}</small></div></div><ol>@for (step of selectedWorkflowPreview.steps; track $index) { <li>{{ step }}</li> }</ol></div>@if (!canChangeLegalForm) { <p class="form-hint">La forme juridique n’est plus modifiable après la première soumission.</p> }</div>
           } @else if (wizardStep === 2) {
-            <div class="form-grid"><label class="field full"><span>{{ isAutoEntrepreneur ? 'Nom commercial envisagé' : 'Nom envisagé de l’entreprise' }} <b>*</b></span><input [(ngModel)]="dossierForm.proposedCompanyName" maxlength="200" placeholder="Ex. Atlas Conseil SARL" /></label><label class="field"><span>Région d’implantation <b>*</b></span><select [(ngModel)]="dossierForm.region"><option value="">Sélectionnez une région</option>@for (region of regions; track region) { <option [value]="region">{{ region }}</option> }</select></label>@if (!isAutoEntrepreneur) { <label class="field"><span>Capital social (MAD)</span><input type="number" min="0" [(ngModel)]="dossierForm.capitalAmountMad" /></label> } @else { <div class="capital-free-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg><span>Aucun capital social requis</span></div> }<p class="capital-rule full"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg>{{ capitalRuleHint }}</p><label class="field full"><span>Adresse du siège social</span><input [(ngModel)]="dossierForm.headOfficeAddress" maxlength="500" placeholder="Adresse complète du siège envisagé" /></label><label class="field full"><span>Description de l’activité</span><textarea [(ngModel)]="dossierForm.activityDescription" maxlength="1000" rows="4" placeholder="Décrivez brièvement l’activité principale…"></textarea></label></div>
-          } @else {
-            <div><div class="review-panel"><div><span>Forme juridique</span><strong>{{ legalFormLabel(dossierForm.legalFormCode) }}</strong></div><div><span>Entreprise</span><strong>{{ dossierForm.proposedCompanyName }}</strong></div><div><span>Région</span><strong>{{ dossierForm.region }}</strong></div><div><span>Capital</span><strong>{{ formatMoney(dossierForm.capitalAmountMad) }}</strong></div><div class="review-wide"><span>Activité</span><strong>{{ dossierForm.activityDescription || 'Non renseignée' }}</strong></div></div>@if (wizardMode === 'create') { <p class="review-note">Votre dossier sera créé comme brouillon. Vous pourrez ensuite déposer les pièces demandées avant de le soumettre.</p> } @else { <p class="review-note">Les changements seront enregistrés immédiatement dans votre dossier.</p> }</div>
+            <div class="form-grid"><label class="field full"><span>{{ isAutoEntrepreneur ? 'Nom commercial envisagé' : 'Nom envisagé de l’entreprise' }} <b>*</b></span><input [(ngModel)]="dossierForm.proposedCompanyName" maxlength="200" placeholder="Ex. Atlas Conseil SARL" /></label><label class="field"><span>Région d’implantation <b>*</b></span><select [(ngModel)]="dossierForm.region"><option value="">Sélectionnez une région</option>@for (region of regions; track region) { <option [value]="region">{{ region }}</option> }</select></label>@if (!isAutoEntrepreneur) { <label class="field"><span>Capital social (MAD) <b>*</b></span><input type="number" min="1" [(ngModel)]="dossierForm.capitalAmountMad" /></label><label class="field"><span>Valeur nominale d'une part (MAD) <b>*</b></span><input type="number" min="1" [(ngModel)]="dossierForm.valeurNominalePart" placeholder="100" /></label> } @else { <div class="capital-free-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg><span>Aucun capital social requis</span></div> }<p class="capital-rule full"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.25v5m0-8.25h.01"/></svg>{{ capitalRuleHint }}</p><label class="field full"><span>Adresse du siège social</span><input [(ngModel)]="dossierForm.headOfficeAddress" maxlength="500" placeholder="Adresse complète du siège envisagé" /></label><label class="field full"><span>Description de l’activité</span><textarea [(ngModel)]="dossierForm.activityDescription" maxlength="1000" rows="3" placeholder="Décrivez brièvement l’activité principale…"></textarea></label></div>
+          } @else if (wizardStep === 3) {
+            @if (isAutoEntrepreneur) {
+              <div><div class="review-panel"><div><span>Forme juridique</span><strong>{{ legalFormLabel(dossierForm.legalFormCode) }}</strong></div><div><span>Entreprise</span><strong>{{ dossierForm.proposedCompanyName }}</strong></div><div><span>Région</span><strong>{{ dossierForm.region }}</strong></div><div class="review-wide"><span>Activité</span><strong>{{ dossierForm.activityDescription || 'Non renseignée' }}</strong></div></div>@if (wizardMode === 'create') { <p class="review-note">Votre dossier sera créé comme brouillon. Vous pourrez ensuite déposer les pièces demandées avant de le soumettre.</p> } @else { <p class="review-note">Les changements seront enregistrés immédiatement dans votre dossier.</p> }</div>
+            } @else {
+              <app-associes-manager [(associes)]="dossierForm.associes" [capital]="dossierForm.capitalAmountMad || 0" [(valeurNominale)]="dossierForm.valeurNominalePart" [legalFormCode]="dossierForm.legalFormCode"></app-associes-manager>
+            }
+          } @else if (wizardStep === 4 && !isAutoEntrepreneur) {
+            <app-gerants-manager [(gerants)]="dossierForm.gerants" [activeAssocies]="activeAssocies"></app-gerants-manager>
+          } @else if (wizardStep === 5 && !isAutoEntrepreneur) {
+            <div>
+              <div class="review-panel">
+                <div><span>Forme juridique</span><strong>{{ legalFormLabel(dossierForm.legalFormCode) }}</strong></div>
+                <div><span>Entreprise</span><strong>{{ dossierForm.proposedCompanyName }}</strong></div>
+                <div><span>Région</span><strong>{{ dossierForm.region }}</strong></div>
+                <div><span>Capital social</span><strong>{{ formatMoney(dossierForm.capitalAmountMad) }}</strong></div>
+                <div><span>Valeur nominale</span><strong>{{ formatMoney(dossierForm.valeurNominalePart || 100) }} / part</strong></div>
+                <div><span>Total parts</span><strong>{{ totalPartsAttendu }} parts</strong></div>
+                <div><span>Associés actifs</span><strong>{{ activeAssocies.length }} associé(s)</strong></div>
+                <div><span>Gérants désignés</span><strong>{{ activeGerants.length }} gérant(s)</strong></div>
+                <div class="review-wide"><span>Siège social</span><strong>{{ dossierForm.headOfficeAddress || 'Non renseigné' }}</strong></div>
+                <div class="review-wide"><span>Activité</span><strong>{{ dossierForm.activityDescription || 'Non renseignée' }}</strong></div>
+              </div>
+
+              <div class="review-subcard">
+                <h5>Associés fondateurs ({{ activeAssocies.length }})</h5>
+                <ul class="recap-list">
+                  @for (a of activeAssocies; track a.cinOuPasseport) {
+                    <li>
+                      <span><strong>{{ a.prenom }} {{ a.nom }}</strong> ({{ a.cinOuPasseport }})</span>
+                      <span><strong>{{ a.nombreParts }} parts</strong> ({{ formatMoney(a.montantApport) }} · {{ a.pourcentageDetention || getAssociePct(a) }}%)</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              <div class="review-subcard">
+                <h5>Gérance désignée ({{ activeGerants.length }})</h5>
+                <ul class="recap-list">
+                  @for (g of activeGerants; track g.cinOuPasseport) {
+                    <li>
+                      <span><strong>{{ g.prenom }} {{ g.nom }}</strong> ({{ g.cinOuPasseport }}) — <em>{{ g.estAssocie ? 'Associé' : 'Tiers' }}</em></span>
+                      <span>{{ g.modeNomination === 'STATUTAIRE' ? 'Statutaire' : 'Acte séparé' }} · Mandat : {{ g.dureeMandat || 'Indéterminée' }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              @if (wizardMode === 'create') {
+                <p class="review-note">Votre dossier sera créé comme brouillon. Vous pourrez ensuite générer vos statuts et déposer les pièces requises avant de le soumettre.</p>
+              } @else {
+                <p class="review-note">Les modifications seront enregistrées immédiatement dans votre dossier.</p>
+              }
+            </div>
           }
           @if (formError) { <p class="form-error">{{ formError }}</p> }
         </div>
-        <footer class="modal-footer">@if (wizardStep > 1) { <button type="button" class="btn btn-outline" (click)="previousWizardStep()">Retour</button> } @else { <span></span> }@if (wizardStep < 3) { <button type="button" class="btn btn-primary" (click)="nextWizardStep()">Continuer →</button> } @else { <button type="button" class="btn btn-primary" [disabled]="isSavingDossier" (click)="saveDossier()">{{ isSavingDossier ? 'Enregistrement…' : wizardMode === 'create' ? 'Créer mon dossier' : 'Enregistrer les modifications' }}</button> }</footer>
+        <footer class="modal-footer">@if (wizardStep > 1) { <button type="button" class="btn btn-outline" (click)="previousWizardStep()">Retour</button> } @else { <span></span> }@if (wizardStep < maxWizardSteps) { <button type="button" class="btn btn-primary" (click)="nextWizardStep()">Continuer →</button> } @else { <button type="button" class="btn btn-primary" [disabled]="isSavingDossier" (click)="saveDossier()">{{ isSavingDossier ? 'Enregistrement…' : wizardMode === 'create' ? 'Créer mon dossier' : 'Enregistrer les modifications' }}</button> }</footer>
       </section>
     </div>
   }

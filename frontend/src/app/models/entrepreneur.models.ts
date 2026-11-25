@@ -2,6 +2,35 @@ export type LegalFormCode = 'AUTO_ENTREPRENEUR' | 'SARL' | 'SARL_AU' | 'SA';
 export type DossierStatus = 'BROUILLON' | 'SOUMIS' | 'EN_COURS' | 'A_CORRIGER' | 'FINALISE';
 export type StepStatus = 'EN_ATTENTE' | 'EN_COURS' | 'VALIDEE' | 'REJETEE';
 export type PaymentStatus = 'EN_ATTENTE' | 'CONFIRME' | 'ECHOUE';
+export type ModeNominationGerant = 'STATUTAIRE' | 'ACTE_SEPARE';
+
+export interface Associe {
+  id?: string;
+  nom: string;
+  prenom: string;
+  cinOuPasseport: string;
+  nationalite: string;
+  adresse: string;
+  nombreParts: number;
+  montantApport?: number;
+  pourcentageDetention?: number;
+  actif?: boolean;
+}
+
+export interface Gerant {
+  id?: string;
+  associeId?: string | null;
+  estAssocie: boolean;
+  nom: string;
+  prenom: string;
+  cinOuPasseport: string;
+  nationalite: string;
+  adresse: string;
+  modeNomination: ModeNominationGerant;
+  dureeMandat?: string;
+  pouvoirs?: string;
+  actif?: boolean;
+}
 
 export interface StepReference {
   code: string;
@@ -50,6 +79,14 @@ export interface DossierDetail extends DossierSummary {
   checklistCompletionRate: number;
   workflowVersionId: string;
   steps: StepTracking[];
+  valeurNominalePart?: number;
+  nombreTotalParts?: number;
+  associes?: Associe[];
+  gerants?: Gerant[];
+  entrepreneurNom?: string;
+  entrepreneurEmail?: string;
+  entrepreneurCin?: string;
+  entrepreneurTelephone?: string;
 }
 
 export interface PagedDossiers {
@@ -67,6 +104,9 @@ export interface DossierPayload {
   activityDescription: string;
   capitalAmountMad: number;
   headOfficeAddress: string;
+  valeurNominalePart?: number;
+  associes?: Associe[];
+  gerants?: Gerant[];
 }
 
 export interface ChecklistItem {
